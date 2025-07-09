@@ -199,7 +199,7 @@ struct ProjectStatCard: View {
             }
         }
         .padding(Spacing.lg)
-        .background(Color.lightGray.opacity(0.5))
+        .background(Color.lightGreen.opacity(0.5))
         .cornerRadius(CornerRadius.small)
     }
 }

@@ -9,12 +9,19 @@ import SwiftUI
 
 // MARK: - Colors
 extension Color {
-    static let primaryGreen = Color(hex: "#00C58E")
-    static let secondaryGray = Color(hex: "#6B7280")
-    static let lightGray = Color(hex: "#F3F4F6")
-    static let borderGray = Color(hex: "#E5E7EB")
+    // 主色：深绿色 - 用于按钮、活跃状态和强调元素
+    static let primaryGreen = Color(hex: "#00CE4A")
+    // 辅助色：浅绿色 - 用于进度指示、次要元素
+    static let secondaryGreen = Color(hex: "#81DA94")
+    // 背景色：更浅的绿色 - 用于卡片背景或次要区域
+    static let lightGreen = Color(hex: "#DBF2DC")
+    // 基础色：白色 - 用于主背景和文字对比
     static let cardBackground = Color.white
     static let appBackground = Color.white
+    
+    // 保留一些必要的灰色用于边框等
+    static let borderGray = Color(hex: "#E5E7EB")
+    static let secondaryGray = Color(hex: "#6B7280")
 }
 
 // MARK: - Color Hex Extension
@@ -152,11 +159,11 @@ struct ProgressCircle: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.lightGray, lineWidth: lineWidth)
+                .stroke(Color.lightGreen, lineWidth: lineWidth)
             
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(Color.primaryGreen, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(Color.secondaryGreen, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.5), value: progress)
         }
