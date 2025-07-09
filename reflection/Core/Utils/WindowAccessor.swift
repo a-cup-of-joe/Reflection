@@ -32,6 +32,7 @@ struct WindowAccessor: NSViewRepresentable {
     class Coordinator: NSObject {
         let onWindowAccess: (NSWindow?) -> Void
         private var window: NSWindow?
+        private var timer: Timer?
         
         init(onWindowAccess: @escaping (NSWindow?) -> Void) {
             self.onWindowAccess = onWindowAccess
@@ -43,44 +44,84 @@ struct WindowAccessor: NSViewRepresentable {
             
             // 移除之前的观察者
             if let oldWindow = self.window {
-                NotificationCenter.default.removeObserver(self, name: NSWindow.didExitFullScreenNotification, object: oldWindow)
-                NotificationCenter.default.removeObserver(self, name: NSWindow.didEnterFullScreenNotification, object: oldWindow)
+                removeObservers(for: oldWindow)
             }
             
             self.window = window
             
-            // 添加全屏状态变化的观察者
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowDidExitFullScreen),
-                name: NSWindow.didExitFullScreenNotification,
-                object: window
-            )
-            
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(windowDidEnterFullScreen),
-                name: NSWindow.didEnterFullScreenNotification,
-                object: window
-            )
+            // 添加多个窗口事件的观察者
+            addObservers(for: window)
             
             // 应用窗口设置
             applyWindowSettings(window)
+            
+            // 启动定时器持续监控窗口状态
+            startMonitoring()
         }
         
-        @objc private func windowDidExitFullScreen() {
-            // 退出全屏时重新应用设置
-            DispatchQueue.main.async {
+        private func addObservers(for window: NSWindow) {
+            let notifications: [NSNotification.Name] = [
+                NSWindow.didExitFullScreenNotification,
+                NSWindow.didEnterFullScreenNotification,
+                NSWindow.didMiniaturizeNotification,
+                NSWindow.didDeminiaturizeNotification,
+                NSWindow.didResizeNotification,
+                NSWindow.didMoveNotification,
+                NSWindow.didBecomeKeyNotification,
+                NSWindow.didResignKeyNotification,
+                NSWindow.didBecomeMainNotification,
+                NSWindow.didResignMainNotification
+            ]
+            
+            for notification in notifications {
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(windowStateChanged),
+                    name: notification,
+                    object: window
+                )
+            }
+        }
+        
+        private func removeObservers(for window: NSWindow) {
+            let notifications: [NSNotification.Name] = [
+                NSWindow.didExitFullScreenNotification,
+                NSWindow.didEnterFullScreenNotification,
+                NSWindow.didMiniaturizeNotification,
+                NSWindow.didDeminiaturizeNotification,
+                NSWindow.didResizeNotification,
+                NSWindow.didMoveNotification,
+                NSWindow.didBecomeKeyNotification,
+                NSWindow.didResignKeyNotification,
+                NSWindow.didBecomeMainNotification,
+                NSWindow.didResignMainNotification
+            ]
+            
+            for notification in notifications {
+                NotificationCenter.default.removeObserver(self, name: notification, object: window)
+            }
+        }
+        
+        @objc private func windowStateChanged() {
+            // 延迟一点应用设置，确保窗口状态变化完成
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 if let window = self.window {
                     self.applyWindowSettings(window)
                 }
             }
         }
         
-        @objc private func windowDidEnterFullScreen() {
-            // 进入全屏时也可以做一些处理
-            if let window = self.window {
-                self.applyWindowSettings(window)
+        private func startMonitoring() {
+            // 停止之前的定时器
+            timer?.invalidate()
+            
+            // 每0.5秒检查一次窗口状态并重新应用设置
+            timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+                DispatchQueue.main.async {
+                    if let window = self.window {
+                        self.applyWindowSettings(window)
+                    }
+                }
             }
         }
         
@@ -89,9 +130,9 @@ struct WindowAccessor: NSViewRepresentable {
         }
         
         deinit {
+            timer?.invalidate()
             if let window = self.window {
-                NotificationCenter.default.removeObserver(self, name: NSWindow.didExitFullScreenNotification, object: window)
-                NotificationCenter.default.removeObserver(self, name: NSWindow.didEnterFullScreenNotification, object: window)
+                removeObservers(for: window)
             }
         }
     }
