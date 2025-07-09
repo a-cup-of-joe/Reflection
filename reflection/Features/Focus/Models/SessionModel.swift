@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct FocusSession: Identifiable, Codable, Equatable {
     let id = UUID()
@@ -13,12 +14,19 @@ struct FocusSession: Identifiable, Codable, Equatable {
     var taskDescription: String
     var startTime: Date
     var endTime: Date?
+    var themeColor: String = "#00CE4A" // 默认主题色
+    
     var duration: TimeInterval {
         guard let endTime = endTime else { return 0 }
         return endTime.timeIntervalSince(startTime)
     }
+    
     var isActive: Bool {
         endTime == nil
+    }
+    
+    var themeColorSwiftUI: Color {
+        Color(hex: themeColor)
     }
 }
 
@@ -34,14 +42,15 @@ class SessionViewModel: ObservableObject {
         loadSessions()
     }
     
-    func startSession(project: String, task: String) {
+    func startSession(project: String, task: String, themeColor: String = "#00CE4A") {
         // 结束当前会话（如果有）
         endCurrentSession()
         
         let newSession = FocusSession(
             projectName: project,
             taskDescription: task,
-            startTime: Date()
+            startTime: Date(),
+            themeColor: themeColor
         )
         
         currentSession = newSession

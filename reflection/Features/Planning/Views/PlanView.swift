@@ -74,10 +74,18 @@ struct PlanItemCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            // 项目名称
-            Text(plan.project)
-                .font(.headline)
-                .foregroundColor(.primary)
+            // 项目名称和主题色指示
+            HStack {
+                Circle()
+                    .fill(plan.themeColorSwiftUI)
+                    .frame(width: 8, height: 8)
+                
+                Text(plan.project)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+            }
             
             // 时间信息
             HStack {
@@ -109,12 +117,17 @@ struct PlanItemCard: View {
                 
                 // 进度圆环
                 VStack(spacing: Spacing.xs) {
-                    ProgressCircle(progress: plan.completionPercentage, size: 50, lineWidth: 4)
+                    ProgressCircle(
+                        progress: plan.completionPercentage, 
+                        size: 50, 
+                        lineWidth: 4,
+                        color: plan.themeColorSwiftUI
+                    )
                         .overlay(
                             Text("\(Int(plan.completionPercentage * 100))%")
                                 .font(.caption)
                                 .fontWeight(.bold)
-                                .foregroundColor(.primaryGreen)
+                                .foregroundColor(plan.themeColorSwiftUI)
                         )
                 }
             }

@@ -12,99 +12,175 @@ struct CreatePlanView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var projectName = ""
-    @State private var timeInput = ""
+    @State private var totalMinutes = 30 // 总分钟数
+    @State private var selectedThemeColor = "#00CE4A"
     @State private var showingError = false
     @State private var errorMessage = ""
     
+
+    
     var body: some View {
-        VStack(spacing: 0) {
-            // 标题栏
-            HStack {
-                Button("取消") {
-                    dismiss()
+        ZStack {
+            // 主内容
+            VStack(spacing: 0) {
+                // 标题栏
+                HStack {
+                    Button("取消") {
+                        dismiss()
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    
+                    Spacer()
+                    
+                    Text("新建时间段")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Button("创建") {
+                        createPlan()
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(projectName.isEmpty)
                 }
-                .buttonStyle(SecondaryButtonStyle())
+                .padding(Spacing.xl)
+                .background(Color.appBackground)
                 
-                Spacer()
-                
-                Text("新建计划")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Button("创建") {
-                    createPlan()
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(projectName.isEmpty || timeInput.isEmpty)
-            }
-            .padding(Spacing.xl)
-            .background(Color.appBackground)
-            
-            // 表单内容
-            VStack(spacing: Spacing.xl) {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    // 项目信息
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("项目名称")
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                // 表单内容
+                VStack(spacing: Spacing.xl) {
+                    VStack(alignment: .leading, spacing: Spacing.xl) {
+                        // 时间段名称
+                        HStack(spacing: Spacing.lg) {
+                            Text("名称")
+                                .font(.subheadline)
+                                .foregroundColor(.secondaryGray)
+                                .frame(width: 60, alignment: .leading)
+                            
+                            TextField("时间段名称", text: $projectName)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(.body)
+                                .padding(.horizontal, Spacing.md)
+                                .padding(.vertical, Spacing.sm)
+                                .background(Color.white)
+                                .cornerRadius(CornerRadius.small)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                                        .stroke(Color.borderGray, lineWidth: 1)
+                                )
+                        }
                         
-                        TextField("请输入项目名称", text: $projectName)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.body)
+                        // 主题色选择
+                        HStack(spacing: Spacing.lg) {
+                            Text("颜色")
+                                .font(.subheadline)
+                                .foregroundColor(.secondaryGray)
+                                .frame(width: 60, alignment: .leading)
+                            
+                            HStack(spacing: Spacing.sm) {
+                                ForEach(Color.themeColors.prefix(6), id: \.self) { colorHex in
+                                    Button(action: {
+                                        selectedThemeColor = colorHex
+                                    }) {
+                                        Circle()
+                                            .fill(Color(hex: colorHex))
+                                            .frame(width: 16, height: 16)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(
+                                                        selectedThemeColor == colorHex ? Color.primary : Color.clear,
+                                                        lineWidth: 2
+                                                    )
+                                            )
+                                            .scaleEffect(selectedThemeColor == colorHex ? 1.2 : 1.0)
+                                            .animation(.easeInOut(duration: 0.2), value: selectedThemeColor)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                        
+                        // 时间选择
+                        HStack(spacing: Spacing.lg) {
+                            Text("时间")
+                                .font(.subheadline)
+                                .foregroundColor(.secondaryGray)
+                                .frame(width: 60, alignment: .leading)
+                            
+                            HStack(spacing: Spacing.sm) {
+                                Button(action: {
+                                    adjustTime(-15)
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundColor(.secondaryGray)
+                                        .font(.system(size: 20))
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                Text(formatTimeDisplay())
+                                    .font(.system(size: 18, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 60)
+                                
+                                Button(action: {
+                                    adjustTime(15)
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .foregroundColor(.secondaryGray)
+                                        .font(.system(size: 20))
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
                     }
                     
-                    // 计划时间
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("计划时间")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        TextField("例如: 2:30 表示2小时30分钟", text: $timeInput)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .font(.body)
-                        
-                        Text("格式说明：30 (30分钟) | 1:30 (1小时30分钟) | 2:30:45 (2小时30分45秒)")
-                            .font(.caption)
-                            .foregroundColor(.secondaryGray)
-                            .padding(.horizontal, Spacing.sm)
-                    }
+                    Spacer()
                 }
-                
-                Spacer()
+                .padding(Spacing.xl)
+                .background(Color.appBackground)
             }
-            .padding(Spacing.xl)
+            .frame(width: 460, height: 320)
             .background(Color.appBackground)
+            .alert("错误", isPresented: $showingError) {
+                Button("确定") { }
+            } message: {
+                Text(errorMessage)
+            }
         }
-        .frame(width: 500, height: 400)
-        .background(Color.appBackground)
-        .alert("错误", isPresented: $showingError) {
-            Button("确定") { }
-        } message: {
-            Text(errorMessage)
+    }
+    
+    private func adjustTime(_ minutes: Int) {
+        let newTotal = totalMinutes + minutes
+        if newTotal >= 15 && newTotal <= 480 { // 15分钟到8小时
+            totalMinutes = newTotal
         }
+    }
+    
+    private func formatTimeDisplay() -> String {
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        return String(format: "%d:%02d", hours, minutes)
     }
     
     private func createPlan() {
         guard !projectName.isEmpty else {
-            showError("请输入项目名称")
+            showError("请输入时间段名称")
             return
         }
         
-        guard let plannedTime = TimeFormatters.parseTimeInput(timeInput) else {
-            showError("时间格式不正确，请参考格式说明")
-            return
-        }
-        
-        guard plannedTime > 0 else {
+        guard totalMinutes > 0 else {
             showError("计划时间必须大于0")
             return
         }
         
-        planViewModel.addPlan(project: projectName, plannedTime: plannedTime)
+        let totalSeconds = TimeInterval(totalMinutes * 60)
+        
+        planViewModel.addPlan(
+            project: projectName,
+            plannedTime: totalSeconds,
+            themeColor: selectedThemeColor
+        )
         dismiss()
     }
     

@@ -22,6 +22,22 @@ extension Color {
     // 保留一些必要的灰色用于边框等
     static let borderGray = Color(hex: "#E5E7EB")
     static let secondaryGray = Color(hex: "#6B7280")
+    
+    // 预设主题色
+    static let themeColors: [String] = [
+        "#00CE4A", // 主绿色
+        "#FF6B6B", // 红色
+        "#4ECDC4", // 青色
+        "#45B7D1", // 蓝色
+        "#F9CA24", // 黄色
+        "#F0932B", // 橙色
+        "#EB4D4B", // 深红色
+        "#6C5CE7", // 紫色
+        "#A29BFE", // 浅紫色
+        "#FD79A8", // 粉色
+        "#FDCB6E", // 浅橙色
+        "#6C5CE7"  // 深紫色
+    ]
 }
 
 // MARK: - Color Hex Extension
@@ -149,21 +165,23 @@ struct ProgressCircle: View {
     let progress: Double
     let size: CGFloat
     let lineWidth: CGFloat
+    let color: Color
     
-    init(progress: Double, size: CGFloat = 120, lineWidth: CGFloat = 8) {
+    init(progress: Double, size: CGFloat = 120, lineWidth: CGFloat = 8, color: Color = .secondaryGreen) {
         self.progress = progress
         self.size = size
         self.lineWidth = lineWidth
+        self.color = color
     }
     
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.lightGreen, lineWidth: lineWidth)
+                .stroke(color.opacity(0.3), lineWidth: lineWidth)
             
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(Color.secondaryGreen, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.5), value: progress)
         }

@@ -107,7 +107,11 @@ struct StartSessionView: View {
     
     private func startSession() {
         let project = showingCustomProject ? customProject : selectedProject
-        sessionViewModel.startSession(project: project, task: taskDescription)
+        
+        // 查找对应计划的主题色
+        let themeColor = planViewModel.plans.first { $0.project == project }?.themeColor ?? "#00CE4A"
+        
+        sessionViewModel.startSession(project: project, task: taskDescription, themeColor: themeColor)
         dismiss()
     }
 }

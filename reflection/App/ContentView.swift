@@ -4,6 +4,7 @@
 //
 //  Created by linan on 2025/7/9.
 //
+//  This is a MacOS app, not IOS!
 
 import SwiftUI
 

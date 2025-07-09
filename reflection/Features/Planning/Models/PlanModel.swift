@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct PlanItem: Identifiable, Codable {
     let id = UUID()
@@ -13,6 +14,7 @@ struct PlanItem: Identifiable, Codable {
     var plannedTime: TimeInterval // 计划时间（秒）
     var actualTime: TimeInterval = 0 // 实际投入时间（秒）
     var createdAt: Date = Date()
+    var themeColor: String = "#00CE4A" // 主题色，默认为主绿色
     
     var plannedTimeFormatted: String {
         TimeFormatters.formatDuration(plannedTime)
@@ -30,6 +32,10 @@ struct PlanItem: Identifiable, Codable {
         guard plannedTime > 0 else { return 0 }
         return min(actualTime / plannedTime, 1.0)
     }
+    
+    var themeColorSwiftUI: Color {
+        Color(hex: themeColor)
+    }
 }
 
 class PlanViewModel: ObservableObject {
@@ -40,8 +46,8 @@ class PlanViewModel: ObservableObject {
         loadPlans()
     }
     
-    func addPlan(project: String, plannedTime: TimeInterval) {
-        let newPlan = PlanItem(project: project, plannedTime: plannedTime)
+    func addPlan(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
+        let newPlan = PlanItem(project: project, plannedTime: plannedTime, themeColor: themeColor)
         plans.append(newPlan)
         savePlans()
     }
