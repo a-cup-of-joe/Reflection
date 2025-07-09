@@ -64,7 +64,7 @@ struct CreatePlanView: View {
                                 .frame(width: 60, alignment: .leading)
                             
                             HStack(spacing: Spacing.sm) {
-                                ForEach(Color.themeColors.prefix(6), id: \.self) { colorHex in
+                                ForEach(Color.themeColors, id: \.self) { colorHex in
                                     Button(action: {
                                         selectedThemeColor = colorHex
                                     }) {

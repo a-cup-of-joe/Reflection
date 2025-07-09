@@ -23,20 +23,17 @@ extension Color {
     static let borderGray = Color(hex: "#E5E7EB")
     static let secondaryGray = Color(hex: "#6B7280")
     
-    // 预设主题色
+    // 预设主题色 - 从红色到紫色的9种代表性颜色
     static let themeColors: [String] = [
-        "#00CE4A", // 主绿色
-        "#FF6B6B", // 红色
-        "#4ECDC4", // 青色
-        "#45B7D1", // 蓝色
-        "#F9CA24", // 黄色
-        "#F0932B", // 橙色
-        "#EB4D4B", // 深红色
-        "#6C5CE7", // 紫色
-        "#A29BFE", // 浅紫色
-        "#FD79A8", // 粉色
-        "#FDCB6E", // 浅橙色
-        "#6C5CE7"  // 深紫色
+        "#FF4757", // 红色
+        "#FF6B35", // 红橙色
+        "#FF9500", // 橙色
+        "#FFD700", // 金黄色
+        "#32CD32", // 绿色
+        "#00CED1", // 青色
+        "#4169E1", // 蓝色
+        "#8A2BE2", // 蓝紫色
+        "#DA70D6"  // 紫色
     ]
 }
 
