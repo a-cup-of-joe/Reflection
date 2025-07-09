@@ -6,11 +6,15 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct PlanView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
     @State private var showingAddPlan = false
     @State private var selectedPlan: PlanItem?
+    @State private var draggedIndex: Int? = nil
+    @State private var dragOffset: CGFloat = 0
+    @State private var targetIndex: Int? = nil
     
     var body: some View {
         ZStack {
@@ -27,12 +31,28 @@ struct PlanView: View {
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
-                        ForEach(planViewModel.plans) { plan in
-                            TimeBarView(plan: plan) {
-                                selectedPlan = plan
-                            }
+                        ForEach(planViewModel.plans.indices, id: \.self) { index in
+                            let plan = planViewModel.plans[index]
+                            DraggableTimeBar(
+                                plan: plan,
+                                index: index,
+                                totalItems: planViewModel.plans.count,
+                                draggedIndex: $draggedIndex,
+                                dragOffset: $dragOffset,
+                                targetIndex: $targetIndex,
+                                onTap: {
+                                    selectedPlan = plan
+                                },
+                                onMove: { from, to in
+                                    planViewModel.movePlan(fromIndex: from, toIndex: to)
+                                }
+                            )
                         }
                     }
+                    .scrollDisabled(draggedIndex != nil) // 当拖动时禁用滚动
+                    .allowsHitTesting(true) // 确保可以响应点击
+                    .background(Color.clear) // 明确背景色
+                    .clipped() // 限制拖动范围
                     
                     if planViewModel.plans.isEmpty {
                         VStack(spacing: Spacing.lg) {
@@ -98,67 +118,66 @@ struct TimeBarView: View {
     @State private var isHovered = false
     
     var body: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 0) {
-                Button(action: onTap) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: Spacing.xs) {
-                            Text(plan.project)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            
-                            Text(formatPlanTime())
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.9))
-                        }
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        
-                        Spacer()
-                    }
-                    .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
-                    .background(
-                        Group {
-                            if plan.isSpecialMaterial {
-                                // 特殊材质效果
-                                RoundedRectangle(cornerRadius: CornerRadius.small)
-                                    .fill(plan.specialMaterialGradient!)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: CornerRadius.small)
-                                            .stroke(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        Color.white.opacity(0.6),
-                                                        Color.black.opacity(0.2)
-                                                    ]),
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                ),
-                                                lineWidth: 1
-                                            )
-                                    )
-                                    .shadow(color: plan.specialMaterialShadow!, radius: isHovered ? 6 : 3, x: 0, y: 2)
-                                    .shadow(color: Color.black.opacity(0.1), radius: isHovered ? 8 : 4, x: 0, y: 4)
-                            } else {
-                                // 普通颜色效果
-                                RoundedRectangle(cornerRadius: CornerRadius.small)
-                                    .fill(plan.themeColorSwiftUI)
-                                    .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
-                            }
-                        }
-                    )
-                    .scaleEffect(isHovered ? 1.02 : 1.0)
-                    .animation(.easeInOut(duration: 0.2), value: isHovered)
+        HStack(spacing: 0) {
+            // 主要内容区域 - 只有这部分可以被拖动
+            HStack {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(plan.project)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    Text(formatPlanTime())
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
                 }
-                .buttonStyle(PlainButtonStyle())
-                .onHover { hovering in
-                    isHovered = hovering
-                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
                 
                 Spacer()
             }
+            .frame(width: calculateBarWidth(), height: 44)
+            .background(
+                Group {
+                    if plan.isSpecialMaterial {
+                        // 特殊材质效果
+                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                            .fill(plan.specialMaterialGradient!)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CornerRadius.small)
+                                    .stroke(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.white.opacity(0.6),
+                                                Color.black.opacity(0.2)
+                                            ]),
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .shadow(color: plan.specialMaterialShadow!, radius: isHovered ? 6 : 3, x: 0, y: 2)
+                            .shadow(color: Color.black.opacity(0.1), radius: isHovered ? 8 : 4, x: 0, y: 4)
+                    } else {
+                        // 普通颜色效果
+                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                            .fill(plan.themeColorSwiftUI)
+                            .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+                    }
+                }
+            )
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isHovered)
+            .onTapGesture {
+                onTap()
+            }
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            
+            Spacer()
         }
         .frame(height: 44)
     }
@@ -170,9 +189,12 @@ struct TimeBarView: View {
         return String(format: "%d:%02d", hours, minutes)
     }
     
-    private func calculateBarWidth(containerWidth: CGFloat) -> CGFloat {
+    private func calculateBarWidth() -> CGFloat {
         let totalMinutes = plan.plannedTime / 60
         let totalHours = totalMinutes / 60
+        
+        // 假设容器宽度为 400（可以根据实际需要调整）
+        let containerWidth: CGFloat = 400
         
         // 基础宽度：15分钟对应容器宽度的20%
         let baseWidth = containerWidth * 0.2
@@ -189,6 +211,163 @@ struct TimeBarView: View {
         let finalMaxWidth = containerWidth * 0.85  // 最大85%
         
         return max(minWidth, min(proportionalWidth, finalMaxWidth))
+    }
+}
+
+// MARK: - DraggableTimeBar
+struct DraggableTimeBar: View {
+    let plan: PlanItem
+    let index: Int
+    let totalItems: Int
+    @Binding var draggedIndex: Int?
+    @Binding var dragOffset: CGFloat
+    @Binding var targetIndex: Int?
+    let onTap: () -> Void
+    let onMove: (Int, Int) -> Void
+    
+    @State private var localDragOffset: CGSize = .zero
+    @State private var isDragging = false
+    @State private var isHovered = false
+    
+    // 添加窗口状态管理
+    @State private var windowIsMovable = true
+    @State private var windowMovableChanged = false
+    
+    private var isBeingDragged: Bool {
+        draggedIndex == index
+    }
+    
+    // 精确的让位逻辑
+    private var shouldShift: Bool {
+        guard let draggedIndex = draggedIndex, 
+              let targetIndex = targetIndex,
+              draggedIndex != index else { return false }
+        
+        // 只有在拖动路径上的元素才需要让位
+        if draggedIndex < targetIndex {
+            // 向下拖动：原位置到目标位置之间的元素向上让位
+            return index > draggedIndex && index <= targetIndex
+        } else if draggedIndex > targetIndex {
+            // 向上拖动：目标位置到原位置之间的元素向下让位
+            return index >= targetIndex && index < draggedIndex
+        }
+        
+        return false
+    }
+    
+    private var shiftOffset: CGFloat {
+        guard shouldShift,
+              let draggedIndex = draggedIndex,
+              let targetIndex = targetIndex else { return 0 }
+        
+        let itemHeight: CGFloat = 44 + Spacing.md
+        
+        // 根据拖动方向决定让位方向
+        if draggedIndex < targetIndex {
+            // 向下拖动，上方元素向上让位
+            return -itemHeight
+        } else {
+            // 向上拖动，下方元素向下让位
+            return itemHeight
+        }
+    }
+    
+    // 计算目标位置 - 修复精度问题
+    private func calculateTargetIndex(dragOffset: CGFloat) -> Int {
+        guard draggedIndex == index else { return index }
+        
+        let itemHeight: CGFloat = 44 + Spacing.md
+        let threshold = itemHeight * 0.5 // 50% 阈值，确保对称
+        
+        var newIndex = index
+        
+        if dragOffset > threshold {
+            // 向下拖动
+            newIndex = index + Int((dragOffset + threshold) / itemHeight)
+        } else if dragOffset < -threshold {
+            // 向上拖动
+            newIndex = index + Int((dragOffset - threshold) / itemHeight)
+        }
+        
+        return max(0, min(totalItems - 1, newIndex))
+    }
+    
+    var body: some View {
+        TimeBarView(plan: plan, onTap: {
+            if !isDragging {
+                onTap()
+            }
+        })
+        .offset(y: isBeingDragged ? localDragOffset.height : shiftOffset)
+        .scaleEffect(isDragging ? 1.02 : 1.0)
+        .zIndex(isDragging ? 1 : 0)
+        .animation(.easeInOut(duration: 0.2), value: isDragging)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: shiftOffset)
+        .gesture(
+            DragGesture(minimumDistance: 8, coordinateSpace: .local)
+                .onChanged { value in
+                    if !isDragging {
+                        isDragging = true
+                        draggedIndex = index
+                        
+                        // 禁用窗口拖动
+                        if let window = NSApp.keyWindow {
+                            windowIsMovable = window.isMovable
+                            window.isMovable = false
+                            windowMovableChanged = true
+                        }
+                    }
+                    
+                    // 只允许垂直拖动
+                    let verticalTranslation = value.translation.height
+                    localDragOffset = CGSize(width: 0, height: verticalTranslation)
+                    dragOffset = verticalTranslation
+                    
+                    // 实时计算目标位置
+                    let newTargetIndex = calculateTargetIndex(dragOffset: verticalTranslation)
+                    if newTargetIndex != targetIndex {
+                        targetIndex = newTargetIndex
+                    }
+                }
+                .onEnded { value in
+                    let finalTargetIndex = calculateTargetIndex(dragOffset: value.translation.height)
+                    let shouldMove = abs(value.translation.height) > 20 && finalTargetIndex != index
+                    
+                    if shouldMove {
+                        // 延迟执行移动和状态重置，让动画完成
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            onMove(index, finalTargetIndex)
+                            
+                            // 在移动完成后重置状态
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                resetDragState()
+                            }
+                        }
+                    } else {
+                        // 如果不需要移动，立即重置状态
+                        resetDragState()
+                    }
+                }
+        )
+    }
+    
+    private func resetDragState() {
+        // 恢复窗口拖动能力
+        if windowMovableChanged {
+            NSApp.windows.forEach { window in
+                if !window.isMovable {
+                    window.isMovable = windowIsMovable
+                }
+            }
+            windowMovableChanged = false
+        }
+        
+        // 重置拖动状态
+        isDragging = false
+        draggedIndex = nil
+        dragOffset = 0
+        targetIndex = nil
+        localDragOffset = .zero
     }
 }
 

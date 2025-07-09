@@ -9,12 +9,21 @@ import Foundation
 import SwiftUI
 
 struct PlanItem: Identifiable, Codable {
-    let id = UUID()
+    var id: UUID = UUID()
     var project: String
     var plannedTime: TimeInterval // 计划时间（秒）
     var actualTime: TimeInterval = 0 // 实际投入时间（秒）
     var createdAt: Date = Date()
     var themeColor: String = "#00CE4A" // 主题色，默认为主绿色
+    
+    init(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
+        self.id = UUID()
+        self.project = project
+        self.plannedTime = plannedTime
+        self.actualTime = 0
+        self.createdAt = Date()
+        self.themeColor = themeColor
+    }
     
     var plannedTimeFormatted: String {
         TimeFormatters.formatDuration(plannedTime)
@@ -90,6 +99,23 @@ class PlanViewModel: ObservableObject {
     
     func deletePlan(planId: UUID) {
         plans.removeAll { $0.id == planId }
+        savePlans()
+    }
+    
+    // MARK: - Drag and Drop Support
+    func movePlan(from source: IndexSet, to destination: Int) {
+        plans.move(fromOffsets: source, toOffset: destination)
+        savePlans()
+    }
+    
+    func movePlan(fromIndex: Int, toIndex: Int) {
+        guard fromIndex >= 0 && fromIndex < plans.count &&
+              toIndex >= 0 && toIndex <= plans.count &&
+              fromIndex != toIndex else { return }
+        
+        let plan = plans.remove(at: fromIndex)
+        let insertIndex = toIndex > fromIndex ? toIndex - 1 : toIndex
+        plans.insert(plan, at: insertIndex)
         savePlans()
     }
     

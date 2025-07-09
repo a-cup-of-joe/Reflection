@@ -97,7 +97,6 @@ struct ContentView: View {
             guard let window = window else { return }
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
-            window.isMovableByWindowBackground = true
         }
         .appStyle()
         .onChange(of: sessionViewModel.sessions) {
