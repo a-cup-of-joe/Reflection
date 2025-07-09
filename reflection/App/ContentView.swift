@@ -28,7 +28,7 @@ struct ContentView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.primaryGreen)
                 }
-                .padding(.top, Spacing.xl)
+                .padding(.top, 50) // 为窗口控制按钮留出空间
                 
                 // 导航图标按钮
                 VStack(spacing: Spacing.lg) {
@@ -57,7 +57,7 @@ struct ContentView: View {
                 Spacer()
             }
             .frame(width: 90)
-            .background(Color.lightGray.opacity(0.3))
+            .background(Color.lightGreen.opacity(0.3))
             
             // 右侧主内容区域
             Group {
@@ -79,6 +79,13 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.appBackground)
+        }
+        .edgesIgnoringSafeArea(.top)
+        .onWindowAccess { window in
+            guard let window = window else { return }
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.isMovableByWindowBackground = true
         }
         .appStyle()
         .onChange(of: sessionViewModel.sessions) {

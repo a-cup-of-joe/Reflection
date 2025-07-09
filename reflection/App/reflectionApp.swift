@@ -14,6 +14,7 @@ struct reflectionApp: App {
         WindowGroup {
             ContentView()
                 .background(Color.appBackground)
+                .frame(minWidth: 450, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 1000, height: 700)
