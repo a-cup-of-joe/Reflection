@@ -40,6 +40,8 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.appBackground)
+            .padding(.leading, 64 + 12) // sidebar宽度(64) + sidebar左边距(12) + 内容左边距(12)
+            .padding(.trailing, Spacing.sm) // 右侧边距
             
             // 悬浮的侧边栏面板
             VStack(spacing: Spacing.xl) {

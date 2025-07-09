@@ -27,7 +27,6 @@ struct StatisticsView: View {
                     }
                     .buttonStyle(SecondaryButtonStyle())
                 }
-                .padding(.horizontal, Spacing.xl)
                 .padding(.top, Spacing.xl)
                 
                 // 统计内容
@@ -93,7 +92,6 @@ struct OverallStatsCard: View {
         }
         .padding(Spacing.xl)
         .cardStyle()
-        .padding(.horizontal, Spacing.xl)
     }
 }
 

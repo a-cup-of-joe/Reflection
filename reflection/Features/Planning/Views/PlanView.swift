@@ -31,7 +31,6 @@ struct PlanView: View {
                     }
                     .buttonStyle(CircleButtonStyle())
                 }
-                .padding(.horizontal, Spacing.xl)
                 .padding(.top, Spacing.xl)
                 
                 // 计划列表
@@ -40,7 +39,6 @@ struct PlanView: View {
                         PlanItemCard(plan: plan)
                     }
                 }
-                .padding(.horizontal, Spacing.xl)
                 
                 if planViewModel.plans.isEmpty {
                     VStack(spacing: Spacing.lg) {

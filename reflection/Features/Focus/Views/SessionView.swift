@@ -33,7 +33,6 @@ struct SessionView: View {
                     .buttonStyle(CircleButtonStyle())
                     .disabled(sessionViewModel.currentSession != nil)
                 }
-                .padding(.horizontal, Spacing.xl)
                 .padding(.top, Spacing.xl)
                 
                 // 当前会话或空闲状态
@@ -54,14 +53,12 @@ struct SessionView: View {
                                 .foregroundColor(.primary)
                             Spacer()
                         }
-                        .padding(.horizontal, Spacing.xl)
                         
                         LazyVStack(spacing: Spacing.md) {
                             ForEach(sessionViewModel.sessions.suffix(5).reversed(), id: \.id) { session in
                                 SessionHistoryCard(session: session)
                             }
                         }
-                        .padding(.horizontal, Spacing.xl)
                     }
                 }
                 
@@ -124,7 +121,6 @@ struct ActiveSessionCard: View {
         }
         .padding(Spacing.xl)
         .cardStyle()
-        .padding(.horizontal, Spacing.xl)
     }
 }
 
@@ -149,7 +145,6 @@ struct IdleSessionCard: View {
         }
         .padding(Spacing.xl)
         .cardStyle()
-        .padding(.horizontal, Spacing.xl)
     }
 }
 
