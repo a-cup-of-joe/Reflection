@@ -15,23 +15,48 @@ struct ContentView: View {
     @State private var selectedTab = 0
     
     var body: some View {
-        HStack(spacing: 0) {
-            // 左侧 Sidebar（固定宽度 90）
+        ZStack(alignment: .topLeading) {
+            // 背景
+            Color.appBackground
+                .ignoresSafeArea()
+            
+            // 主内容区域
+            Group {
+                switch selectedTab {
+                case 0:
+                    PlanView()
+                        .environmentObject(planViewModel)
+                case 1:
+                    SessionView()
+                        .environmentObject(sessionViewModel)
+                        .environmentObject(planViewModel)
+                case 2:
+                    StatisticsView()
+                        .environmentObject(statisticsViewModel)
+                default:
+                    PlanView()
+                        .environmentObject(planViewModel)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.appBackground)
+            
+            // 悬浮的侧边栏面板
             VStack(spacing: Spacing.xl) {
                 // Logo 或应用标识
                 VStack(spacing: Spacing.sm) {
                     Image(systemName: "circle.fill")
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
                         .foregroundColor(.primaryGreen)
                     
                     Text("R")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.primaryGreen)
                 }
-                .padding(.top, 50) // 为窗口控制按钮留出空间
+                .padding(.top, Spacing.md)
                 
                 // 导航图标按钮
-                VStack(spacing: Spacing.lg) {
+                VStack(spacing: Spacing.md) {
                     SidebarIconButton(
                         icon: "calendar",
                         isSelected: selectedTab == 0
@@ -56,29 +81,13 @@ struct ContentView: View {
                 
                 Spacer()
             }
-            .frame(width: 90)
-            .background(Color.lightGreen.opacity(0.3))
-            
-            // 右侧主内容区域
-            Group {
-                switch selectedTab {
-                case 0:
-                    PlanView()
-                        .environmentObject(planViewModel)
-                case 1:
-                    SessionView()
-                        .environmentObject(sessionViewModel)
-                        .environmentObject(planViewModel)
-                case 2:
-                    StatisticsView()
-                        .environmentObject(statisticsViewModel)
-                default:
-                    PlanView()
-                        .environmentObject(planViewModel)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.appBackground)
+            .frame(width: 64)
+            .background(Color.white)
+            .cornerRadius(CornerRadius.medium)
+            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+            .padding(.top, 32) // 为窗口控制按钮留出空间
+            .padding(.leading, 12) // 左侧间距
+            .padding(.bottom, 12) // 底部间距
         }
         .edgesIgnoringSafeArea(.top)
         .onWindowAccess { window in
@@ -101,26 +110,51 @@ struct SidebarIconButton: View {
     let isSelected: Bool
     let action: () -> Void
     
+    @State private var isHovered = false
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: Spacing.xs) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(isSelected ? .white : .secondaryGray)
-                    .frame(width: 32, height: 32)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(iconColor)
+                    .frame(width: 28, height: 28)
                 
                 Circle()
                     .fill(isSelected ? Color.primaryGreen : Color.clear)
-                    .frame(width: 4, height: 4)
+                    .frame(width: 3, height: 3)
             }
-            .padding(.vertical, Spacing.sm)
+            .padding(.vertical, Spacing.xs)
             .padding(.horizontal, Spacing.xs)
             .background(
-                RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(isSelected ? Color.primaryGreen.opacity(0.1) : Color.clear)
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .fill(backgroundColor)
             )
         }
         .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+    
+    private var iconColor: Color {
+        if isSelected {
+            return .white
+        } else if isHovered {
+            return .primaryGreen
+        } else {
+            return .secondaryGray
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return .primaryGreen
+        } else if isHovered {
+            return .borderGray.opacity(0.3)
+        } else {
+            return .clear
+        }
     }
 }
 
