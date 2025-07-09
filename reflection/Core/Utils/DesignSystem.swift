@@ -23,7 +23,7 @@ extension Color {
     static let borderGray = Color(hex: "#E5E7EB")
     static let secondaryGray = Color(hex: "#6B7280")
     
-    // 预设主题色 - 从红色到紫色的9种代表性颜色
+    // 预设主题色 - 从红色到紫色的9种代表性颜色 + 特殊金属色
     static let themeColors: [String] = [
         "#FF4757", // 红色
         "#FF6B35", // 红橙色
@@ -33,13 +33,79 @@ extension Color {
         "#00CED1", // 青色
         "#4169E1", // 蓝色
         "#8A2BE2", // 蓝紫色
-        "#DA70D6"  // 紫色
+        "#DA70D6", // 紫色
+        "#GOLD_SPECIAL", // 特殊金色
+        "#SILVER_SPECIAL" // 特殊银色
     ]
+    
+    // 特殊金属材质渐变色
+    static let goldGradient = LinearGradient(
+        gradient: Gradient(colors: [
+            Color(hex: "#FFD700"), // 金黄色
+            Color(hex: "#FFA500"), // 橙金色
+            Color(hex: "#FFE135"), // 亮金色
+            Color(hex: "#B8860B")  // 暗金色
+        ]),
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    static let silverGradient = LinearGradient(
+        gradient: Gradient(colors: [
+            Color(hex: "#C0C0C0"), // 银色
+            Color(hex: "#A8A8A8"), // 暗银色
+            Color(hex: "#E6E6E6"), // 亮银色
+            Color(hex: "#808080")  // 深银色
+        ]),
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    // 金属材质阴影效果
+    static let goldShadow = Color(hex: "#FFD700").opacity(0.5)
+    static let silverShadow = Color(hex: "#C0C0C0").opacity(0.5)
+    
+    // 特殊材质判断
+    static func isSpecialMaterial(_ colorHex: String) -> Bool {
+        return colorHex == "#GOLD_SPECIAL" || colorHex == "#SILVER_SPECIAL"
+    }
+    
+    static func getSpecialMaterialGradient(_ colorHex: String) -> LinearGradient? {
+        switch colorHex {
+        case "#GOLD_SPECIAL":
+            return goldGradient
+        case "#SILVER_SPECIAL":
+            return silverGradient
+        default:
+            return nil
+        }
+    }
+    
+    static func getSpecialMaterialShadow(_ colorHex: String) -> Color? {
+        switch colorHex {
+        case "#GOLD_SPECIAL":
+            return goldShadow
+        case "#SILVER_SPECIAL":
+            return silverShadow
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Color Hex Extension
 extension Color {
     init(hex: String) {
+        // 处理特殊金属色
+        if hex == "#GOLD_SPECIAL" {
+            self = Color(hex: "#FFD700") // 默认金色
+            return
+        }
+        if hex == "#SILVER_SPECIAL" {
+            self = Color(hex: "#C0C0C0") // 默认银色
+            return
+        }
+        
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)

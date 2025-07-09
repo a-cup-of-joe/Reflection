@@ -68,18 +68,53 @@ struct CreatePlanView: View {
                                     Button(action: {
                                         selectedThemeColor = colorHex
                                     }) {
-                                        Circle()
-                                            .fill(Color(hex: colorHex))
-                                            .frame(width: 16, height: 16)
-                                            .overlay(
+                                        Group {
+                                            if Color.isSpecialMaterial(colorHex) {
+                                                // 特殊材质显示
                                                 Circle()
-                                                    .stroke(
-                                                        selectedThemeColor == colorHex ? Color.primary : Color.clear,
-                                                        lineWidth: 2
+                                                    .fill(Color.getSpecialMaterialGradient(colorHex)!)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                LinearGradient(
+                                                                    gradient: Gradient(colors: [
+                                                                        Color.white.opacity(0.6),
+                                                                        Color.black.opacity(0.2)
+                                                                    ]),
+                                                                    startPoint: .top,
+                                                                    endPoint: .bottom
+                                                                ),
+                                                                lineWidth: 1
+                                                            )
                                                     )
-                                            )
-                                            .scaleEffect(selectedThemeColor == colorHex ? 1.2 : 1.0)
-                                            .animation(.easeInOut(duration: 0.2), value: selectedThemeColor)
+                                                    .frame(width: 16, height: 16)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                selectedThemeColor == colorHex ? Color.primary : Color.clear,
+                                                                lineWidth: 2
+                                                            )
+                                                            .frame(width: 20, height: 20)
+                                                    )
+                                                    .shadow(color: Color.getSpecialMaterialShadow(colorHex)!, radius: 2, x: 0, y: 1)
+                                                    .scaleEffect(selectedThemeColor == colorHex ? 1.2 : 1.0)
+                                                    .animation(.easeInOut(duration: 0.2), value: selectedThemeColor)
+                                            } else {
+                                                // 普通颜色显示
+                                                Circle()
+                                                    .fill(Color(hex: colorHex))
+                                                    .frame(width: 16, height: 16)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                selectedThemeColor == colorHex ? Color.primary : Color.clear,
+                                                                lineWidth: 2
+                                                            )
+                                                    )
+                                                    .scaleEffect(selectedThemeColor == colorHex ? 1.2 : 1.0)
+                                                    .animation(.easeInOut(duration: 0.2), value: selectedThemeColor)
+                                            }
+                                        }
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }

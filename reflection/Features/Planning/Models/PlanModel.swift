@@ -36,6 +36,21 @@ struct PlanItem: Identifiable, Codable {
     var themeColorSwiftUI: Color {
         Color(hex: themeColor)
     }
+    
+    // 检查是否为特殊材质
+    var isSpecialMaterial: Bool {
+        Color.isSpecialMaterial(themeColor)
+    }
+    
+    // 获取特殊材质渐变
+    var specialMaterialGradient: LinearGradient? {
+        Color.getSpecialMaterialGradient(themeColor)
+    }
+    
+    // 获取特殊材质阴影
+    var specialMaterialShadow: Color? {
+        Color.getSpecialMaterialShadow(themeColor)
+    }
 }
 
 class PlanViewModel: ObservableObject {

@@ -106,9 +106,34 @@ struct TimeBarView: View {
                     }
                     .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
                     .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .fill(plan.themeColorSwiftUI)
-                            .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+                        Group {
+                            if plan.isSpecialMaterial {
+                                // 特殊材质效果
+                                RoundedRectangle(cornerRadius: CornerRadius.small)
+                                    .fill(plan.specialMaterialGradient!)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                                            .stroke(
+                                                LinearGradient(
+                                                    gradient: Gradient(colors: [
+                                                        Color.white.opacity(0.6),
+                                                        Color.black.opacity(0.2)
+                                                    ]),
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                ),
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .shadow(color: plan.specialMaterialShadow!, radius: isHovered ? 6 : 3, x: 0, y: 2)
+                                    .shadow(color: Color.black.opacity(0.1), radius: isHovered ? 8 : 4, x: 0, y: 4)
+                            } else {
+                                // 普通颜色效果
+                                RoundedRectangle(cornerRadius: CornerRadius.small)
+                                    .fill(plan.themeColorSwiftUI)
+                                    .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+                            }
+                        }
                     )
                     .scaleEffect(isHovered ? 1.02 : 1.0)
                     .animation(.easeInOut(duration: 0.2), value: isHovered)
@@ -226,16 +251,49 @@ struct EditPlanView: View {
                                     Button(action: {
                                         selectedThemeColor = colorHex
                                     }) {
-                                        Circle()
-                                            .fill(Color(hex: colorHex))
-                                            .frame(width: 16, height: 16)
-                                            .overlay(
+                                        Group {
+                                            if Color.isSpecialMaterial(colorHex) {
+                                                // 特殊材质显示
                                                 Circle()
-                                                    .stroke(
-                                                        selectedThemeColor == colorHex ? Color.primary : Color.clear,
-                                                        lineWidth: 2
+                                                    .fill(Color.getSpecialMaterialGradient(colorHex)!)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                LinearGradient(
+                                                                    gradient: Gradient(colors: [
+                                                                        Color.white.opacity(0.6),
+                                                                        Color.black.opacity(0.2)
+                                                                    ]),
+                                                                    startPoint: .top,
+                                                                    endPoint: .bottom
+                                                                ),
+                                                                lineWidth: 1
+                                                            )
                                                     )
-                                            )
+                                                    .frame(width: 16, height: 16)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                selectedThemeColor == colorHex ? Color.primary : Color.clear,
+                                                                lineWidth: 2
+                                                            )
+                                                            .frame(width: 20, height: 20)
+                                                    )
+                                                    .shadow(color: Color.getSpecialMaterialShadow(colorHex)!, radius: 2, x: 0, y: 1)
+                                            } else {
+                                                // 普通颜色显示
+                                                Circle()
+                                                    .fill(Color(hex: colorHex))
+                                                    .frame(width: 16, height: 16)
+                                                    .overlay(
+                                                        Circle()
+                                                            .stroke(
+                                                                selectedThemeColor == colorHex ? Color.primary : Color.clear,
+                                                                lineWidth: 2
+                                                            )
+                                                    )
+                                            }
+                                        }
                                             .scaleEffect(selectedThemeColor == colorHex ? 1.2 : 1.0)
                                             .animation(.easeInOut(duration: 0.2), value: selectedThemeColor)
                                     }
