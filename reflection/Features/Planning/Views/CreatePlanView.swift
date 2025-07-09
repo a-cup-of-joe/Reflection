@@ -25,32 +25,17 @@ struct CreatePlanView: View {
             VStack(spacing: 0) {
                 // 标题栏
                 HStack {
-                    Button("取消") {
-                        dismiss()
-                    }
-                    .buttonStyle(SecondaryButtonStyle())
-                    
-                    Spacer()
-                    
                     Text("新建时间段")
                         .font(.title)
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    
-                    Spacer()
-                    
-                    Button("创建") {
-                        createPlan()
-                    }
-                    .buttonStyle(PrimaryButtonStyle())
-                    .disabled(projectName.isEmpty)
                 }
-                .padding(Spacing.xl)
+                .padding(Spacing.md)  // 减少标题栏padding
                 .background(Color.appBackground)
                 
                 // 表单内容
-                VStack(spacing: Spacing.xl) {
-                    VStack(alignment: .leading, spacing: Spacing.xl) {
+                VStack(spacing: Spacing.md) {  // 减少整体间距
+                    VStack(alignment: .leading, spacing: Spacing.md) {  // 减少表单项间距
                         // 时间段名称
                         HStack(spacing: Spacing.lg) {
                             Text("名称")
@@ -135,12 +120,22 @@ struct CreatePlanView: View {
                         }
                     }
                     
-                    Spacer()
+                    // 减少间距
+                    Spacer(minLength: Spacing.xs)  // 进一步减少间距
+                    
+                    HStack(spacing: Spacing.sm) {
+                        Button("取消") { dismiss() }
+                            .buttonStyle(SmallSecondaryButtonStyle())
+                        Spacer()
+                        Button("创建") { createPlan() }
+                            .buttonStyle(SmallButtonStyle())
+                            .disabled(projectName.isEmpty)
+                    }
                 }
-                .padding(Spacing.xl)
+                .padding(Spacing.md)  // 减少外层padding
                 .background(Color.appBackground)
             }
-            .frame(width: 460, height: 320)
+            .frame(width: 380, height: 260)
             .background(Color.appBackground)
             .alert("错误", isPresented: $showingError) {
                 Button("确定") { }

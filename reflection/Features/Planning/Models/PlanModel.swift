@@ -64,6 +64,20 @@ class PlanViewModel: ObservableObject {
         }
     }
     
+    func updatePlan(planId: UUID, project: String, plannedTime: TimeInterval, themeColor: String) {
+        if let index = plans.firstIndex(where: { $0.id == planId }) {
+            plans[index].project = project
+            plans[index].plannedTime = plannedTime
+            plans[index].themeColor = themeColor
+            savePlans()
+        }
+    }
+    
+    func deletePlan(planId: UUID) {
+        plans.removeAll { $0.id == planId }
+        savePlans()
+    }
+    
     private func loadPlans() {
         plans = dataManager.loadPlans()
     }
