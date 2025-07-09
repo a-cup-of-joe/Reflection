@@ -290,7 +290,7 @@ struct ContainerStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(Spacing.lg)
-            .frame(maxWidth: 800)
+            .frame(maxWidth: .infinity)
             .background(Color.appBackground)
     }
 }

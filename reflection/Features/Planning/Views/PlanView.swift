@@ -118,26 +118,27 @@ struct TimeBarView: View {
     @State private var isHovered = false
     
     var body: some View {
-        HStack(spacing: 0) {
-            // 主要内容区域 - 只有这部分可以被拖动
-            HStack {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(plan.project)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                // 主要内容区域 - 只有这部分可以被拖动
+                HStack {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text(plan.project)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        Text(formatPlanTime())
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
                     
-                    Text(formatPlanTime())
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+                    Spacer()
                 }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                
-                Spacer()
-            }
-            .frame(width: calculateBarWidth(), height: 44)
+                .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
             .background(
                 Group {
                     if plan.isSpecialMaterial {
@@ -177,7 +178,8 @@ struct TimeBarView: View {
                 isHovered = hovering
             }
             
-            Spacer()
+                Spacer()
+            }
         }
         .frame(height: 44)
     }
@@ -189,28 +191,30 @@ struct TimeBarView: View {
         return String(format: "%d:%02d", hours, minutes)
     }
     
-    private func calculateBarWidth() -> CGFloat {
+    private func calculateBarWidth(containerWidth: CGFloat) -> CGFloat {
         let totalMinutes = plan.plannedTime / 60
         let totalHours = totalMinutes / 60
         
-        // 假设容器宽度为 400（可以根据实际需要调整）
-        let containerWidth: CGFloat = 400
+        // 确保最小容器宽度，避免除零错误
+        let safeContainerWidth = max(containerWidth, 200)
         
-        // 基础宽度：15分钟对应容器宽度的20%
-        let baseWidth = containerWidth * 0.2
+
+        let baseWidth = safeContainerWidth * 0.1
         
-        // 3小时对应容器宽度的70%
-        let maxWidth = containerWidth * 0.7
-        let referenceHours: CGFloat = 3.0
+        // 最大宽度：85%的容器宽度
+        let maxWidth = safeContainerWidth * 0.7
         
-        // 计算比例宽度
-        let proportionalWidth = baseWidth + (totalHours / referenceHours) * (maxWidth - baseWidth)
+        // 参考时长：2小时对应最大宽度
+        let referenceHours: CGFloat = 3
         
-        // 限制最小和最大宽度
-        let minWidth = containerWidth * 0.15  // 最小15%
-        let finalMaxWidth = containerWidth * 0.85  // 最大85%
+        // 使用对数函数优化长度映射，让差异更加明显
+        let logScale = log(1 + totalHours) / log(1 + referenceHours)
+        let proportionalWidth = baseWidth + (maxWidth - baseWidth) * logScale
         
-        return max(minWidth, min(proportionalWidth, finalMaxWidth))
+        // 设置最小宽度：30%的容器宽度
+        let minWidth = safeContainerWidth * 0.1
+        
+        return max(minWidth, min(proportionalWidth, maxWidth))
     }
 }
 
