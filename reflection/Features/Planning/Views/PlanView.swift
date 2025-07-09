@@ -84,37 +84,44 @@ struct TimeBarView: View {
     @State private var isHovered = false
     
     var body: some View {
-        Button(action: onTap) {
-            HStack {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(plan.project)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                    
-                    Text(formatPlanTime())
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+        GeometryReader { geometry in
+            HStack(spacing: 0) {
+                Button(action: onTap) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text(plan.project)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            
+                            Text(formatPlanTime())
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.9))
+                        }
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        
+                        Spacer()
+                    }
+                    .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.small)
+                            .fill(plan.themeColorSwiftUI)
+                            .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+                    )
+                    .scaleEffect(isHovered ? 1.02 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: isHovered)
                 }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
+                .buttonStyle(PlainButtonStyle())
+                .onHover { hovering in
+                    isHovered = hovering
+                }
                 
                 Spacer()
             }
-            .frame(width: calculateBarWidth(), height: 44)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.small)
-                    .fill(plan.themeColorSwiftUI)
-                    .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
-            )
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isHovered)
         }
-        .buttonStyle(PlainButtonStyle())
-        .onHover { hovering in
-            isHovered = hovering
-        }
+        .frame(height: 44)
     }
     
     private func formatPlanTime() -> String {
@@ -124,14 +131,25 @@ struct TimeBarView: View {
         return String(format: "%d:%02d", hours, minutes)
     }
     
-    private func calculateBarWidth() -> CGFloat {
+    private func calculateBarWidth(containerWidth: CGFloat) -> CGFloat {
         let totalMinutes = plan.plannedTime / 60
-        let baseWidth: CGFloat = 120 // 基础宽度
-        let maxWidth: CGFloat = 300 // 最大宽度
-        let hourWidth: CGFloat = 24 // 每小时增加的宽度
+        let totalHours = totalMinutes / 60
         
-        let calculatedWidth = baseWidth + (totalMinutes / 60) * hourWidth
-        return min(calculatedWidth, maxWidth)
+        // 基础宽度：15分钟对应容器宽度的20%
+        let baseWidth = containerWidth * 0.2
+        
+        // 3小时对应容器宽度的70%
+        let maxWidth = containerWidth * 0.7
+        let referenceHours: CGFloat = 3.0
+        
+        // 计算比例宽度
+        let proportionalWidth = baseWidth + (totalHours / referenceHours) * (maxWidth - baseWidth)
+        
+        // 限制最小和最大宽度
+        let minWidth = containerWidth * 0.15  // 最小15%
+        let finalMaxWidth = containerWidth * 0.85  // 最大85%
+        
+        return max(minWidth, min(proportionalWidth, finalMaxWidth))
     }
 }
 
