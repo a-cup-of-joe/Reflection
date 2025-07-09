@@ -13,58 +13,72 @@ struct PlanView: View {
     @State private var selectedPlan: PlanItem?
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: Spacing.xl) {
-                // 标题和添加按钮
+        ZStack {
+            ScrollView {
+                VStack(spacing: Spacing.xl) {
+                    // 标题
+                    HStack {
+                        Text("时间分配计划")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                    .padding(.top, Spacing.xl)
+                    
+                    // 时间条列表
+                    LazyVStack(spacing: Spacing.md) {
+                        ForEach(planViewModel.plans) { plan in
+                            TimeBarView(plan: plan) {
+                                selectedPlan = plan
+                            }
+                        }
+                    }
+                    
+                    if planViewModel.plans.isEmpty {
+                        VStack(spacing: Spacing.lg) {
+                            Image(systemName: "calendar.badge.plus")
+                                .font(.system(size: 64))
+                                .foregroundColor(.secondaryGray)
+                            
+                            Text("暂无时间段")
+                                .font(.headline)
+                                .foregroundColor(.secondaryGray)
+                            
+                            Text("点击上方 + 按钮创建您的第一个时间段")
+                                .font(.body)
+                                .foregroundColor(.secondaryGray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.vertical, Spacing.xxl)
+                    }
+                    
+                    Spacer(minLength: Spacing.xl)
+                }
+            }
+            .containerStyle()
+                    
+            // 悬浮的添加按钮
+            VStack {
+                Spacer()
                 HStack {
-                    Text("时间分配计划")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(.primary)
-                    
                     Spacer()
-                    
                     Button(action: {
                         showingAddPlan = true
                     }) {
                         Image(systemName: "plus")
-                            .font(.title2)
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.accentColor)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
                     }
-                    .buttonStyle(CircleButtonStyle())
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.trailing, Spacing.lg)
+                    .padding(.bottom, Spacing.lg)
                 }
-                .padding(.top, Spacing.xl)
-                
-                // 时间条列表
-                LazyVStack(spacing: Spacing.md) {
-                    ForEach(planViewModel.plans) { plan in
-                        TimeBarView(plan: plan) {
-                            selectedPlan = plan
-                        }
-                    }
-                }
-                
-                if planViewModel.plans.isEmpty {
-                    VStack(spacing: Spacing.lg) {
-                        Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 64))
-                            .foregroundColor(.secondaryGray)
-                        
-                        Text("暂无时间段")
-                            .font(.headline)
-                            .foregroundColor(.secondaryGray)
-                        
-                        Text("点击上方 + 按钮创建您的第一个时间段")
-                            .font(.body)
-                            .foregroundColor(.secondaryGray)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.vertical, Spacing.xxl)
-                }
-                
-                Spacer(minLength: Spacing.xl)
             }
         }
-        .containerStyle()
         .sheet(isPresented: $showingAddPlan) {
             CreatePlanView()
                 .environmentObject(planViewModel)
