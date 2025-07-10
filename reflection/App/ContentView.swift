@@ -14,6 +14,11 @@ struct ContentView: View {
     @StateObject private var statisticsViewModel = StatisticsViewModel()
     
     @State private var selectedTab = 0
+    @State private var windowSize: CGSize = .zero
+    @State private var shouldHideSidebar = false
+    
+    // 侧边栏隐藏的阈值宽度
+    private let sidebarHideThreshold: CGFloat = 600
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -41,57 +46,77 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.appBackground)
-            .padding(.leading, 64 + 12) // sidebar宽度(64) + sidebar左边距(12) + 内容左边距(12)
+            .padding(.leading, shouldHideSidebar ? 0 : (64 + 12)) // 动态调整padding
+            .animation(.easeInOut(duration: 0.3), value: shouldHideSidebar)
             
             // 悬浮的侧边栏面板
-            VStack(spacing: Spacing.xl) {
-                // Logo 或应用标识
-                VStack(spacing: Spacing.sm) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.primaryGreen)
+            if !shouldHideSidebar {
+                VStack(spacing: Spacing.xl) {
+                    // Logo 或应用标识
+                    VStack(spacing: Spacing.sm) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(.primaryGreen)
+                        
+                        Text("R")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.primaryGreen)
+                    }
+                    .padding(.top, Spacing.md)
                     
-                    Text("R")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(.primaryGreen)
+                    // 导航图标按钮
+                    VStack(spacing: Spacing.md) {
+                        SidebarIconButton(
+                            icon: "calendar",
+                            isSelected: selectedTab == 0
+                        ) {
+                            selectedTab = 0
+                        }
+                        
+                        SidebarIconButton(
+                            icon: "timer",
+                            isSelected: selectedTab == 1
+                        ) {
+                            selectedTab = 1
+                        }
+                        
+                        SidebarIconButton(
+                            icon: "chart.bar",
+                            isSelected: selectedTab == 2
+                        ) {
+                            selectedTab = 2
+                        }
+                    }
+                    
+                    Spacer()
                 }
-                .padding(.top, Spacing.md)
-                
-                // 导航图标按钮
-                VStack(spacing: Spacing.md) {
-                    SidebarIconButton(
-                        icon: "calendar",
-                        isSelected: selectedTab == 0
-                    ) {
-                        selectedTab = 0
-                    }
-                    
-                    SidebarIconButton(
-                        icon: "timer",
-                        isSelected: selectedTab == 1
-                    ) {
-                        selectedTab = 1
-                    }
-                    
-                    SidebarIconButton(
-                        icon: "chart.bar",
-                        isSelected: selectedTab == 2
-                    ) {
-                        selectedTab = 2
-                    }
-                }
-                
-                Spacer()
+                .frame(width: 64)
+                .background(Color.white)
+                .cornerRadius(CornerRadius.medium)
+                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                .padding(.top, 32) // 为窗口控制按钮留出空间
+                .padding(.leading, 12) // 左侧间距
+                .padding(.bottom, 12) // 底部间距
+                .transition(.asymmetric(
+                    insertion: .move(edge: .leading).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
             }
-            .frame(width: 64)
-            .background(Color.white)
-            .cornerRadius(CornerRadius.medium)
-            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-            .padding(.top, 32) // 为窗口控制按钮留出空间
-            .padding(.leading, 12) // 左侧间距
-            .padding(.bottom, 12) // 底部间距
         }
         .edgesIgnoringSafeArea(.top)
+        .background(
+            GeometryReader { geometry in
+                Color.clear
+                    .onAppear {
+                        windowSize = geometry.size
+                        updateSidebarVisibility()
+                    }
+                    .onChange(of: geometry.size) { oldSize, newSize in
+                        windowSize = newSize
+                        updateSidebarVisibility()
+                    }
+            }
+        )
         .onWindowAccess { window in
             guard let window = window else { return }
             window.titlebarAppearsTransparent = true
@@ -101,6 +126,24 @@ struct ContentView: View {
         .onChange(of: sessionViewModel.sessions) {
             // 当会话更新时，刷新统计数据
             statisticsViewModel.refreshStatistics()
+        }
+        .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
+            updateSidebarVisibility()
+        }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            updateSidebarVisibility()
+        }
+    }
+    
+    // MARK: - Private Methods
+    private func updateSidebarVisibility() {
+        let isWindowTooNarrow = windowSize.width < sidebarHideThreshold
+        let isInFocusMode = selectedTab == 1 && sessionViewModel.currentSession != nil
+        
+        let newShouldHide = isWindowTooNarrow || isInFocusMode
+        
+        if newShouldHide != shouldHideSidebar {
+            shouldHideSidebar = newShouldHide
         }
     }
 }
