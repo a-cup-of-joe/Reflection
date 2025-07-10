@@ -22,7 +22,7 @@ struct PlanView: View {
                 VStack(spacing: Spacing.xl) {
                     // 标题
                     HStack {
-                        Text("时间分配计划")
+                        Text("Time Planner")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
