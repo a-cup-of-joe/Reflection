@@ -10,8 +10,8 @@ import AppKit
 
 struct PlanView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
-    @State private var showingAddPlan = false
-    @State private var selectedPlan: PlanItem?
+    @State private var showingAddTimeBar = false
+    @State private var selectedTimeBar: TimeBar?
     @State private var draggedIndex: Int? = nil
     @State private var dragOffset: CGFloat = 0
     @State private var targetIndex: Int? = nil
@@ -41,7 +41,7 @@ struct PlanView: View {
                                 dragOffset: $dragOffset,
                                 targetIndex: $targetIndex,
                                 onTap: {
-                                    selectedPlan = plan
+                                    selectedTimeBar = plan
                                 },
                                 onMove: { from, to in
                                     planViewModel.movePlan(fromIndex: from, toIndex: to)
@@ -83,7 +83,7 @@ struct PlanView: View {
                 HStack {
                     Spacer()
                     Button(action: {
-                        showingAddPlan = true
+                        showingAddTimeBar = true
                     }) {
                         Image(systemName: "plus")
                             .font(.system(size: 20, weight: .medium))
@@ -112,7 +112,12 @@ struct PlanView: View {
 
 // MARK: - TimeBarView
 struct TimeBarView: View {
-    let plan: PlanItem
+    let planViewModel = PlanViewModel.shared
+    let timeBarID: UUID
+    let plannedTime = planViewModel.getPlannedTime(for: timeBarID)
+    let color = planViewModel.getColor(for: timeBarID)
+    let name = planViewModel.getActivityName(for: timeBarID)
+    let formatTime = planViewModel.getFormattedPlannedTime(for: timeBarID)
     let onTap: () -> Void
     
     @State private var isHovered = false
@@ -123,13 +128,13 @@ struct TimeBarView: View {
                 // 主要内容区域 - 只有这部分可以被拖动
                 HStack {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
-                        Text(plan.project)
+                        Text(name)
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
                             .lineLimit(1)
-                        
-                        Text(formatPlanTime())
+
+                        Text(formatTime)
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.9))
                     }
@@ -141,7 +146,7 @@ struct TimeBarView: View {
                 .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
             .background(
                 Group {
-                    if plan.isSpecialMaterial {
+                    if Color.isSpecialMaterial(color) {
                         // 特殊材质效果
                         RoundedRectangle(cornerRadius: CornerRadius.small)
                             .fill(plan.specialMaterialGradient!)
@@ -184,15 +189,8 @@ struct TimeBarView: View {
         .frame(height: 44)
     }
     
-    private func formatPlanTime() -> String {
-        let totalMinutes = Int(plan.plannedTime / 60)
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        return String(format: "%d:%02d", hours, minutes)
-    }
-    
     private func calculateBarWidth(containerWidth: CGFloat) -> CGFloat {
-        let totalMinutes = plan.plannedTime / 60
+        let totalMinutes = plannedTime / 60
         let totalHours = totalMinutes / 60
         
         // 确保最小容器宽度，避免除零错误
@@ -220,7 +218,8 @@ struct TimeBarView: View {
 
 // MARK: - DraggableTimeBar
 struct DraggableTimeBar: View {
-    let plan: PlanItem
+    let planViewModel = PlanViewModel.shared
+    let timeBarID: UUID
     let index: Int
     let totalItems: Int
     @Binding var draggedIndex: Int?
@@ -297,7 +296,7 @@ struct DraggableTimeBar: View {
     }
     
     var body: some View {
-        TimeBarView(plan: plan, onTap: {
+        TimeBarView(timeBarID: timeBarID, onTap: {
             if !isDragging {
                 onTap()
             }

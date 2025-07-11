@@ -38,8 +38,4 @@ struct TimeBar: Identifiable, Codable {
         self.activityId = activityId
         self.plannedTime = plannedTime
     }
-
-    var plannedTimeFormatted: String {
-        TimeFormatters.formatDuration(plannedTime)
-    }
 }
