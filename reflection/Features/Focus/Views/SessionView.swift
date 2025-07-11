@@ -9,14 +9,14 @@ import SwiftUI
 
 struct SessionView: View {
     @EnvironmentObject var sessionViewModel: SessionViewModel
-    @EnvironmentObject var planViewModel: PlanViewModel
+    @EnvironmentObject var dataManager: AppDataManager.shared
     
     // 面板状态管理
     @State private var currentPanel: SessionPanel = .idle
     @State private var isAnimating = false
     
     // Panel 2 的状态管理
-    @State private var selectedPlan: PlanItem?
+    @State private var selectedPlan: TimeBar?
     @State private var customProject = ""
     @State private var taskDescription = ""
     @State private var expectedTime = ""
@@ -53,14 +53,7 @@ struct SessionView: View {
             case .taskSelection:
                 HStack(spacing: 0) {
                     TimeBlocksList(
-                        plans: planViewModel.plans.sorted { plan1, plan2 in
-                            let isCompleted1 = plan1.actualTime >= plan1.plannedTime
-                            let isCompleted2 = plan2.actualTime >= plan2.plannedTime
-                            if isCompleted1 != isCompleted2 {
-                                return !isCompleted1
-                            }
-                            return plan1.createdAt < plan2.createdAt
-                        },
+                        plans: DataManager.currentPlan,
                         selectedPlan: $selectedPlan
                     )
                     .frame(width: 280)
@@ -461,8 +454,8 @@ struct TaskSelectionPanel: View {
     let onBack: () -> Void
     let onStartSession: (String, String, String, TimeInterval?, [String]) -> Void
     
-    @EnvironmentObject var planViewModel: PlanViewModel
-    @State private var selectedPlan: PlanItem?
+    @EnvironmentObject var dataManager: AppDataManager.shared
+    @State private var selectedPlan: TimeBar?
     @State private var customProject = ""
     @State private var taskDescription = ""
     @State private var expectedTime = ""
@@ -472,16 +465,7 @@ struct TaskSelectionPanel: View {
         HStack(spacing: 0) {
             // 左侧：时间块列表
             TimeBlocksList(
-                plans: planViewModel.plans.sorted { plan1, plan2 in
-                    // 未完成的优先（实际时间 < 计划时间）
-                    let isCompleted1 = plan1.actualTime >= plan1.plannedTime
-                    let isCompleted2 = plan2.actualTime >= plan2.plannedTime
-                    
-                    if isCompleted1 != isCompleted2 {
-                        return !isCompleted1 // 未完成的排在前面
-                    }
-                    return plan1.createdAt < plan2.createdAt
-                },
+                plans: dataManager.currentPlan,
                 selectedPlan: $selectedPlan
             )
             .frame(width: 280)
@@ -538,8 +522,8 @@ struct TaskSelectionPanel: View {
 
 // 左侧时间块列表
 struct TimeBlocksList: View {
-    let plans: [PlanItem]
-    @Binding var selectedPlan: PlanItem?
+    let plans: [TimeBar]
+    @Binding var selectedPlan: TimeBar?
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {

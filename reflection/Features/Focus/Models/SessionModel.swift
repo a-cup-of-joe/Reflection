@@ -12,7 +12,7 @@ struct FocusSession: Identifiable, Codable, Equatable {
     let id = UUID()
     var projectName: String
     var taskDescription: String
-    var startTime: Date
+var startTime: Date
     var endTime: Date?
     var themeColor: String = "#00CE4A" // 默认主题色
     
