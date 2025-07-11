@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 class PlanViewModel: ObservableObject {
-    static let shared = PlanViewModel()
+    static let planViewModel = PlanViewModel()
     private let dataManager = DataManager.shared
     
     init() {
@@ -40,7 +40,7 @@ class PlanViewModel: ObservableObject {
         dataManager.deleteTimeBar(at: indexSet)
     }
     
-    func updateTimeBar(timeBarId: UUID, name: String, plannedTime: TimeInterval, themeColor: String) {
+    func updateTimeBar(timBarID: UUID, name: String, plannedTime: TimeInterval, themeColor: String) {
         let activityId: UUID
         // 处理活动
         if let activity = dataManager.getActivity(by: name) {
@@ -58,12 +58,12 @@ class PlanViewModel: ObservableObject {
             activityId = newActivity.id
         }
 
-        let timeBar = TimeBar(id: timeBarId, activityId: activityId, plannedTime: plannedTime)
+        let timeBar = TimeBar(id: timBarID, activityId: activityId, plannedTime: plannedTime)
         dataManager.updatedTimeBar(timeBar: timeBar)
     }
 
-    func deleteTimeBar(timeBarId: UUID) {
-        dataManager.deleteTimeBar(timeBarId: timeBarId)
+    func deleteTimeBar(timBarID: UUID) {
+        dataManager.deleteTimeBar(timBarID: timBarID)
     }
     
     // MARK: - Drag and Drop Support
@@ -79,6 +79,10 @@ class PlanViewModel: ObservableObject {
         return dataManager.getTimeBar(by: id)
     }
 
+    func getTimeBars() -> [TimeBar] {
+        return dataManager.getTimeBars()
+    }
+
     func getPlannedTime(for timeBarID: UUID) -> TimeInterval? {
         guard let timeBar = dataManager.getTimeBar(by: timeBarID) else { return nil }
         return timeBar.plannedTime
@@ -90,6 +94,14 @@ class PlanViewModel: ObservableObject {
             return Color.gray // 默认颜色
         }
         return Color(hex: activity.themeColor)
+    }
+
+    func getColorHex(for timeBarID: UUID) -> String {
+        guard let timeBar = dataManager.getTimeBar(by: timeBarID),
+              let activity = dataManager.getActivity(by: timeBar.activityId) else {
+            return "#808080" // 默认灰色
+        }
+        return activity.themeColor
     }
 
     func getActivityName(for timeBarID: UUID) -> String? {

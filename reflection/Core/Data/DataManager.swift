@@ -167,6 +167,11 @@ class DataManager: ObservableObject {
         return existingPlan.timeBars.first { $0.id == id }
     }
 
+    func getTimeBars(in plan: Plan? = currentPlan) -> [TimeBar] {
+        guard let plan = plan, let existingPlan = plans[plan.id] else { return [] }
+        return existingPlan.timeBars
+    }
+
     func addTimeBar(to plan: Plan = currentPlan, timeBar: TimeBar) {
         guard var existingPlan = plans[plan.id] else { return }
         existingPlan.timeBars.append(timeBar)
@@ -179,9 +184,9 @@ class DataManager: ObservableObject {
 
     }
 
-    func deleteTimeBar(from plan: Plan, timeBarId: UUID) {
+    func deleteTimeBar(from plan: Plan, timBarID: UUID) {
         guard var existingPlan = plans[plan.id] else { return }
-        existingPlan.timeBars.removeAll { $0.id == timeBarId }
+        existingPlan.timeBars.removeAll { $0.id == timBarID }
         plans[plan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划

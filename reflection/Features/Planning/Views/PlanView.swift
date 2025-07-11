@@ -9,7 +9,7 @@ import SwiftUI
 import AppKit
 
 struct PlanView: View {
-    @EnvironmentObject var planViewModel: PlanViewModel
+    @EnvironmentObject var planViewModel = PlanViewModel.shared
     @State private var showingAddTimeBar = false
     @State private var selectedTimeBar: TimeBar?
     @State private var draggedIndex: Int? = nil
@@ -31,17 +31,17 @@ struct PlanView: View {
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
-                        ForEach(planViewModel.plans.indices, id: \.self) { index in
-                            let plan = planViewModel.plans[index]
+                        ForEach(planViewModel.getTimeBars().indices, id: \.self) { index in
+                            let timeBar = planViewModel.getTimeBars()[index]
                             DraggableTimeBar(
-                                plan: plan,
+                                timeBarID: timeBar.id,
                                 index: index,
-                                totalItems: planViewModel.plans.count,
+                                totalItems: planViewModel.getTimeBars().count,
                                 draggedIndex: $draggedIndex,
                                 dragOffset: $dragOffset,
                                 targetIndex: $targetIndex,
                                 onTap: {
-                                    selectedTimeBar = plan
+                                    selectedTimeBar = timeBar
                                 },
                                 onMove: { from, to in
                                     planViewModel.movePlan(fromIndex: from, toIndex: to)
@@ -53,8 +53,8 @@ struct PlanView: View {
                     .allowsHitTesting(true) // 确保可以响应点击
                     .background(Color.clear) // 明确背景色
                     .clipped() // 限制拖动范围
-                    
-                    if planViewModel.plans.isEmpty {
+
+                    if planViewModel.getTimeBars().isEmpty {
                         VStack(spacing: Spacing.lg) {
                             Image(systemName: "calendar.badge.plus")
                                 .font(.system(size: 64))
@@ -115,7 +115,7 @@ struct TimeBarView: View {
     let planViewModel = PlanViewModel.shared
     let timeBarID: UUID
     let plannedTime = planViewModel.getPlannedTime(for: timeBarID)
-    let color = planViewModel.getColor(for: timeBarID)
+    let colorHex = planViewModel.getColorHex(for: timeBarID)
     let name = planViewModel.getActivityName(for: timeBarID)
     let formatTime = planViewModel.getFormattedPlannedTime(for: timeBarID)
     let onTap: () -> Void
@@ -146,10 +146,10 @@ struct TimeBarView: View {
                 .frame(width: calculateBarWidth(containerWidth: geometry.size.width), height: 44)
             .background(
                 Group {
-                    if Color.isSpecialMaterial(color) {
+                    if Color.isSpecialMaterial(colorHex) {
                         // 特殊材质效果
                         RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .fill(plan.specialMaterialGradient!)
+                            .fill(Color.getSpecialMaterialGradient(colorHex))
                             .overlay(
                                 RoundedRectangle(cornerRadius: CornerRadius.small)
                                     .stroke(
@@ -164,13 +164,13 @@ struct TimeBarView: View {
                                         lineWidth: 1
                                     )
                             )
-                            .shadow(color: plan.specialMaterialShadow!, radius: isHovered ? 6 : 3, x: 0, y: 2)
+                            .shadow(color: Color.getSpecialMaterialShadow(colorHex)!, radius: isHovered ? 6 : 3, x: 0, y: 2)
                             .shadow(color: Color.black.opacity(0.1), radius: isHovered ? 8 : 4, x: 0, y: 4)
                     } else {
                         // 普通颜色效果
                         RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .fill(plan.themeColorSwiftUI)
-                            .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+                            .fill(planViewModel.getColor(for: timeBarID))
+                            .shadow(color: planViewModel.getColor(for: timeBarID).opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
                     }
                 }
             )
@@ -376,11 +376,12 @@ struct DraggableTimeBar: View {
 
 // MARK: - EditPlanView
 struct EditPlanView: View {
-    let plan: PlanItem
-    @EnvironmentObject var planViewModel: PlanViewModel
+    let timeBarID: UUID
+    @EnvironmentObject var planViewModel = PlanViewModel.shared
     @Environment(\.dismiss) private var dismiss
     
     @State private var projectName: String
+    @State private var plannedTime: TimeInterval
     @State private var totalMinutes: Int
     @State private var selectedThemeColor: String
     @State private var showingDeleteConfirmation = false
@@ -388,11 +389,12 @@ struct EditPlanView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     
-    init(plan: PlanItem) {
-        self.plan = plan
-        self._projectName = State(initialValue: plan.project)
-        self._totalMinutes = State(initialValue: Int(plan.plannedTime / 60))
-        self._selectedThemeColor = State(initialValue: plan.themeColor)
+    init(timeBarID: UUID) {
+        self.timeBarID = timeBarID
+        self._projectName = State(initialValue: planViewModel.getActivityName(for: timeBarID))
+        self._plannedTime = State(initialValue: planViewModel.getPlannedTime(for: timeBarID) ?? 0)
+        self._totalMinutes = State(initialValue: Int(planViewModel.getPlannedTime(for: timeBarID) ?? 0 / 60))
+        self._selectedThemeColor = State(initialValue: planViewModel.getColorHex(for: timeBarID))
     }
     
     var body: some View {
@@ -600,8 +602,8 @@ struct EditPlanView: View {
             return
         }
         
-        planViewModel.updatePlan(
-            planId: plan.id,
+        planViewModel.updateTimeBar(
+            timBarID: timeBarID,
             project: projectName,
             plannedTime: TimeInterval(totalMinutes * 60),
             themeColor: selectedThemeColor
@@ -610,7 +612,7 @@ struct EditPlanView: View {
     }
     
     private func deletePlan() {
-        planViewModel.deletePlan(planId: plan.id)
+        planViewModel.deleteTimeBar(timBarID: timeBarID)
         dismiss()
     }
     
