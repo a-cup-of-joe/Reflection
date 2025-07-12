@@ -121,10 +121,6 @@ struct ContentView: View {
             window.titleVisibility = .hidden
         }
         .appStyle()
-        .onChange(of: sessionViewModel.sessions) {
-            // 当会话更新时，刷新统计数据
-            statisticsViewModel.refreshStatistics()
-        }
         .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
             updateSidebarVisibility()
         }

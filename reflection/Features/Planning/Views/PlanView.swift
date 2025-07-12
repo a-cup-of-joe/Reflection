@@ -104,7 +104,7 @@ struct PlanView: View {
                 .environmentObject(planViewModel)
         }
         .sheet(item: $selectedTimeBar) { timeBar in
-            EditPlanView(timeBarID: timeBar.id)
+            EditPlanView(timeBarID: timeBar.id, projectName: planViewModel.getActivityName(for: timeBar.id), plannedTime: planViewModel.getPlannedTime(for: timeBar.id), totalMinutes: Int(planViewModel.getPlannedTime(for: timeBar.id) / 60), selectedThemeColor: planViewModel.getColorHex(for: timeBar.id))
                 .environmentObject(planViewModel)
         }
     }
@@ -402,12 +402,12 @@ struct EditPlanView: View {
     @State private var showingError = false
     @State private var errorMessage = ""
     
-    init(timeBarID: UUID) {
+    init(timeBarID: UUID, projectName: String = "", plannedTime: TimeInterval = 0, totalMinutes: Int = 0, selectedThemeColor: String = "") {
         self.timeBarID = timeBarID
-        self._projectName = State(initialValue: planViewModel.getActivityName(for: timeBarID))
-        self._plannedTime = State(initialValue: planViewModel.getPlannedTime(for: timeBarID))
-        self._totalMinutes = State(initialValue: Int(planViewModel.getPlannedTime(for: timeBarID) / 60))
-        self._selectedThemeColor = State(initialValue: planViewModel.getColorHex(for: timeBarID))
+        self._projectName = State(initialValue: projectName)
+        self._plannedTime = State(initialValue: plannedTime)
+        self._totalMinutes = State(initialValue: totalMinutes)
+        self._selectedThemeColor = State(initialValue: selectedThemeColor)
     }
     
     var body: some View {
