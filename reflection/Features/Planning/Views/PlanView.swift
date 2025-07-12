@@ -10,6 +10,7 @@ import AppKit
 
 struct PlanView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
+    @EnvironmentObject var dataManager: DataManager
     @State private var showingAddTimeBar = false
     @State private var selectedTimeBar: TimeBar?
     @State private var draggedIndex: Int? = nil
@@ -31,12 +32,12 @@ struct PlanView: View {
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
-                        ForEach(planViewModel.getTimeBars().indices, id: \.self) { index in
-                            let timeBar = planViewModel.getTimeBars()[index]
+                        ForEach(dataManager.getTimeBars().indices, id: \.self) { index in
+                            let timeBar = dataManager.getTimeBars()[index]
                             DraggableTimeBar(
                                 timeBarID: timeBar.id,
                                 index: index,
-                                totalItems: planViewModel.getTimeBars().count,
+                                totalItems: dataManager.getTimeBars().count,
                                 draggedIndex: $draggedIndex,
                                 dragOffset: $dragOffset,
                                 targetIndex: $targetIndex,
@@ -245,10 +246,6 @@ struct DraggableTimeBar: View {
     @State private var isDragging = false
     @State private var isHovered = false
     
-    // 添加窗口状态管理
-    @State private var windowIsMovable = true
-    @State private var windowMovableChanged = false
-    
     private var isBeingDragged: Bool {
         draggedIndex == index
     }
@@ -325,13 +322,6 @@ struct DraggableTimeBar: View {
                     if !isDragging {
                         isDragging = true
                         draggedIndex = index
-                        
-                        // 禁用窗口拖动
-                        if let window = NSApp.keyWindow {
-                            windowIsMovable = window.isMovable
-                            window.isMovable = false
-                            windowMovableChanged = true
-                        }
                     }
                     
                     // 只允许垂直拖动
@@ -368,16 +358,6 @@ struct DraggableTimeBar: View {
     }
     
     private func resetDragState() {
-        // 恢复窗口拖动能力
-        if windowMovableChanged {
-            NSApp.windows.forEach { window in
-                if !window.isMovable {
-                    window.isMovable = windowIsMovable
-                }
-            }
-            windowMovableChanged = false
-        }
-        
         // 重置拖动状态
         isDragging = false
         draggedIndex = nil
