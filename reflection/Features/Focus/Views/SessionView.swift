@@ -23,7 +23,7 @@ struct SessionView: View {
     @State private var taskDescription = ""
     @State private var expectedTime = ""
     @State private var goals: [String] = [""]
-    @State private var themeColor: String = "#00CE4A"
+    @State private var themeColorHex: String = "#00CE4A"
     
     enum SessionPanel {
         case idle           // Panel 1: 空闲状态
@@ -80,19 +80,20 @@ struct SessionView: View {
                         onStart: {
                             // 开始会话的逻辑
                             let activityName: String
+                            let themeColorHex: String
                             if let selectedTimeBar = selectedTimeBar,
                                let activity = dataManager.getActivity(by: selectedTimeBar.activityId) {
                                 activityName = activity.name
-                                themeColor = planViewModel.getColorHex(for: selectedTimeBar.id)
+                                themeColorHex = activity.themeColor
                             } else {
                                 activityName = customProject
-                                themeColor = "#00CE4A"
+                                themeColorHex = "#00CE4A"
                             }
 
                             sessionViewModel.startSession(
                                 name: activityName,
                                 taskDescription: taskDescription,
-                                themeColor: themeColor
+                                themeColor: themeColorHex
                             )
                             
                             withAnimation(.easeInOut(duration: 0.3)) {
@@ -108,11 +109,10 @@ struct SessionView: View {
                 ))
             case .activeSession:
                 if let currentSession = sessionViewModel.currentSession {
+                    let activity = dataManager.getActivity(by: currentSession.activityId)
+                    let themeColor = Color(hex: activity?.themeColor ?? "#00CE4A")
+                    
                     ZStack {
-                        // 获取活动信息
-                        let activity = dataManager.getActivity(by: currentSession.activityId)
-                        let themeColor = Color(hex: activity?.themeColor ?? "#00CE4A")
-                        
                         themeColor.opacity(0.05).ignoresSafeArea()
                         VStack(spacing: Spacing.xxl * 2) {
                             Spacer()

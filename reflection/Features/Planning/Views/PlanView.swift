@@ -162,7 +162,7 @@ struct TimeBarView: View {
                     if Color.isSpecialMaterial(colorHex) {
                         // 特殊材质效果
                         RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .fill(Color.getSpecialMaterialGradient(colorHex))
+                            .fill(Color.getSpecialMaterialGradient(colorHex)!)
                             .overlay(
                                 RoundedRectangle(cornerRadius: CornerRadius.small)
                                     .stroke(
@@ -405,8 +405,8 @@ struct EditPlanView: View {
     init(timeBarID: UUID) {
         self.timeBarID = timeBarID
         self._projectName = State(initialValue: planViewModel.getActivityName(for: timeBarID))
-        self._plannedTime = State(initialValue: planViewModel.getPlannedTime(for: timeBarID) ?? 0)
-        self._totalMinutes = State(initialValue: Int(planViewModel.getPlannedTime(for: timeBarID) ?? 0 / 60))
+        self._plannedTime = State(initialValue: planViewModel.getPlannedTime(for: timeBarID))
+        self._totalMinutes = State(initialValue: Int(planViewModel.getPlannedTime(for: timeBarID) / 60))
         self._selectedThemeColor = State(initialValue: planViewModel.getColorHex(for: timeBarID))
     }
     
