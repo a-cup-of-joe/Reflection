@@ -18,5 +18,6 @@ struct reflectionApp: App {
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 1000, height: 700)
+        .windowStyle(.hiddenTitleBar)
     }
 }

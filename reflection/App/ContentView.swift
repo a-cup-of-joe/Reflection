@@ -117,11 +117,6 @@ struct ContentView: View {
                     }
             }
         )
-        .onWindowAccess { window in
-            guard let window = window else { return }
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-        }
         .appStyle()
         .onChange(of: sessionViewModel.sessions) {
             // 当会话更新时，刷新统计数据
