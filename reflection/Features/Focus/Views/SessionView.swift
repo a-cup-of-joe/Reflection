@@ -8,18 +8,22 @@
 import SwiftUI
 
 struct SessionView: View {
-    @EnvironmentObject var sessionViewModel = SessionViewModel.shared
+    // 改为使用 EnvironmentObject
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    @EnvironmentObject var planViewModel: PlanViewModel
+    @EnvironmentObject var dataManager: DataManager
     
     // 面板状态管理
     @State private var currentPanel: SessionPanel = .idle
     @State private var isAnimating = false
     
     // Panel 2 的状态管理
-    @State private var selectedPlan: TimeBar?
+    @State private var selectedTimeBar: TimeBar?
     @State private var customProject = ""
     @State private var taskDescription = ""
     @State private var expectedTime = ""
     @State private var goals: [String] = [""]
+    @State private var themeColor: String = "#00CE4A"
     
     enum SessionPanel {
         case idle           // Panel 1: 空闲状态
@@ -52,12 +56,12 @@ struct SessionView: View {
             case .taskSelection:
                 HStack(spacing: 0) {
                     TimeBlocksList(
-                        plans: DataManager.currentPlan,
-                        selectedPlan: $selectedPlan
+                        timeBars: dataManager.currentPlan?.timeBars ?? [],
+                        selectedTimeBar: $selectedTimeBar
                     )
                     .frame(width: 280)
                     TaskCustomizationArea(
-                        selectedPlan: selectedPlan,
+                        selectedTimeBar: selectedTimeBar,
                         customProject: $customProject,
                         taskDescription: $taskDescription,
                         expectedTime: $expectedTime,
@@ -66,7 +70,7 @@ struct SessionView: View {
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 currentPanel = .idle
                                 // 重置状态
-                                selectedPlan = nil
+                                selectedTimeBar = nil
                                 customProject = ""
                                 taskDescription = ""
                                 expectedTime = ""
@@ -75,12 +79,19 @@ struct SessionView: View {
                         },
                         onStart: {
                             // 开始会话的逻辑
-                            let project = selectedPlan?.project ?? customProject
-                            let themeColor = selectedPlan?.themeColor ?? "#00CE4A"
-                            
+                            let activityName: String
+                            if let selectedTimeBar = selectedTimeBar,
+                               let activity = dataManager.getActivity(by: selectedTimeBar.activityId) {
+                                activityName = activity.name
+                                themeColor = planViewModel.getColorHex(for: selectedTimeBar.id)
+                            } else {
+                                activityName = customProject
+                                themeColor = "#00CE4A"
+                            }
+
                             sessionViewModel.startSession(
-                                project: project,
-                                task: taskDescription,
+                                name: activityName,
+                                taskDescription: taskDescription,
                                 themeColor: themeColor
                             )
                             
@@ -98,7 +109,11 @@ struct SessionView: View {
             case .activeSession:
                 if let currentSession = sessionViewModel.currentSession {
                     ZStack {
-                        currentSession.themeColorSwiftUI.opacity(0.05).ignoresSafeArea()
+                        // 获取活动信息
+                        let activity = dataManager.getActivity(by: currentSession.activityId)
+                        let themeColor = Color(hex: activity?.themeColor ?? "#00CE4A")
+                        
+                        themeColor.opacity(0.05).ignoresSafeArea()
                         VStack(spacing: Spacing.xxl * 2) {
                             Spacer()
                             Text(formatElapsedTime(sessionViewModel.elapsedTime))
@@ -106,7 +121,7 @@ struct SessionView: View {
                                 .foregroundColor(.white)
                                 .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 2)
                             VStack(spacing: Spacing.sm) {
-                                Text(currentSession.projectName)
+                                Text(activity?.name ?? "未知活动")
                                     .font(.title2)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white.opacity(0.9))
@@ -124,7 +139,7 @@ struct SessionView: View {
                                 Button(action: { /* TODO: 暂停逻辑 */ }) {
                                     ZStack {
                                         Circle()
-                                            .fill(currentSession.themeColorSwiftUI.opacity(0.8))
+                                            .fill(themeColor.opacity(0.8))
                                             .frame(width: 80, height: 80)
                                             .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                                         
@@ -151,7 +166,7 @@ struct SessionView: View {
                                 }) {
                                     ZStack {
                                         Circle()
-                                            .fill(currentSession.themeColorSwiftUI.opacity(0.8))
+                                            .fill(themeColor.opacity(0.8))
                                             .frame(width: 80, height: 80)
                                             .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                                         
@@ -175,9 +190,9 @@ struct SessionView: View {
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                currentSession.themeColorSwiftUI.opacity(0.8),
-                                currentSession.themeColorSwiftUI.opacity(0.6),
-                                currentSession.themeColorSwiftUI.opacity(0.9)
+                                themeColor.opacity(0.8),
+                                themeColor.opacity(0.6),
+                                themeColor.opacity(0.9)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -208,7 +223,7 @@ struct SessionView: View {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     currentPanel = .idle
                     // 重置状态
-                    selectedPlan = nil
+                    selectedTimeBar = nil
                     customProject = ""
                     taskDescription = ""
                     expectedTime = ""
@@ -230,7 +245,12 @@ struct SessionView: View {
 
 struct ActiveSessionCard: View {
     @EnvironmentObject var sessionViewModel: SessionViewModel
-    let session: FocusSession
+    @EnvironmentObject var dataManager: DataManager
+    let session: Session
+    
+    private var activity: Activity? {
+        dataManager.getActivity(by: session.activityId)
+    }
     
     var body: some View {
         VStack(spacing: Spacing.xl) {
@@ -249,7 +269,7 @@ struct ActiveSessionCard: View {
             
             // 项目和任务信息
             VStack(spacing: Spacing.md) {
-                Text(session.projectName)
+                Text(activity?.name ?? "未知活动")
                     .font(.title)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
@@ -302,25 +322,11 @@ struct IdleSessionCard: View {
     }
 }
 
-// MARK: - 按压反馈修饰符
-extension View {
-    func pressEvents(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) -> some View {
-        self.simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    onPress()
-                }
-                .onEnded { _ in
-                    onRelease()
-                }
-        )
-    }
-}
-
 // 左侧时间块列表
 struct TimeBlocksList: View {
-    let plans: [TimeBar]
-    @Binding var selectedPlan: TimeBar?
+    @EnvironmentObject var dataManager: DataManager
+    let timeBars: [TimeBar]
+    @Binding var selectedTimeBar: TimeBar?
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -333,12 +339,12 @@ struct TimeBlocksList: View {
             
             ScrollView {
                 LazyVStack(spacing: Spacing.md) {
-                    ForEach(plans, id: \.id) { plan in
+                    ForEach(timeBars, id: \.id) { timeBar in
                         TimeBlockCard(
-                            plan: plan,
-                            isSelected: selectedPlan?.id == plan.id,
+                            timeBar: timeBar,
+                            isSelected: selectedTimeBar?.id == timeBar.id,
                             onTap: {
-                                selectedPlan = plan
+                                selectedTimeBar = timeBar
                             }
                         )
                         .padding(.horizontal, Spacing.lg)
@@ -359,17 +365,30 @@ struct TimeBlocksList: View {
 
 // 时间块卡片
 struct TimeBlockCard: View {
-    let plan: PlanItem
+    @EnvironmentObject var dataManager: DataManager
+    let timeBar: TimeBar
     let isSelected: Bool
     let onTap: () -> Void
     
+    private var activity: Activity? {
+        dataManager.getActivity(by: timeBar.activityId)
+    }
+    
     private var completionProgress: Double {
-        guard plan.plannedTime > 0 else { return 0 }
-        return min(plan.actualTime / plan.plannedTime, 1.0)
+        guard timeBar.plannedTime > 0 else { return 0 }
+        // 这里需要计算实际完成时间，暂时返回0
+        return 0.0
     }
     
     private var isCompleted: Bool {
-        plan.actualTime >= plan.plannedTime
+        completionProgress >= 1.0
+    }
+    
+    private var themeColor: Color {
+        if let activity = activity {
+            return Color(hex: activity.themeColor)
+        }
+        return Color.primaryGreen
     }
     
     var body: some View {
@@ -382,9 +401,9 @@ struct TimeBlockCard: View {
                         .fill(
                             RadialGradient(
                                 gradient: Gradient(colors: [
-                                    plan.themeColorSwiftUI.opacity(0.9),
-                                    plan.themeColorSwiftUI,
-                                    plan.themeColorSwiftUI.opacity(0.7)
+                                    themeColor.opacity(0.9),
+                                    themeColor,
+                                    themeColor.opacity(0.7)
                                 ]),
                                 center: .center,
                                 startRadius: 0,
@@ -392,7 +411,7 @@ struct TimeBlockCard: View {
                             )
                         )
                         .frame(width: 32, height: 32)
-                        .shadow(color: plan.themeColorSwiftUI.opacity(0.6), radius: 4, x: 0, y: 2)
+                        .shadow(color: themeColor.opacity(0.6), radius: 4, x: 0, y: 2)
                     
                     // 高光效果
                     Circle()
@@ -418,7 +437,7 @@ struct TimeBlockCard: View {
                 
                 // 项目信息
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(plan.project)
+                    Text(activity?.name ?? "未知活动")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
@@ -426,7 +445,7 @@ struct TimeBlockCard: View {
                     
                     // 时间信息
                     HStack(spacing: Spacing.xs) {
-                        Text(plan.actualTimeFormatted)
+                        Text("0m")
                             .font(.caption)
                             .foregroundColor(isCompleted ? .primaryGreen : .secondaryGray)
                         
@@ -434,7 +453,7 @@ struct TimeBlockCard: View {
                             .font(.caption)
                             .foregroundColor(.secondaryGray)
                         
-                        Text(plan.plannedTimeFormatted)
+                        Text(formatTime(timeBar.plannedTime))
                             .font(.caption)
                             .foregroundColor(.secondaryGray)
                         
@@ -444,7 +463,7 @@ struct TimeBlockCard: View {
                         Text("\(Int(completionProgress * 100))%")
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(plan.themeColorSwiftUI)
+                            .foregroundColor(themeColor)
                     }
                 }
             }
@@ -454,18 +473,18 @@ struct TimeBlockCard: View {
                     .fill(
                         // 根据完成状态和选中状态调整背景
                         isSelected 
-                            ? plan.themeColorSwiftUI.opacity(0.15)
+                            ? themeColor.opacity(0.15)
                             : (isCompleted 
-                                ? plan.themeColorSwiftUI.opacity(0.05)
+                                ? themeColor.opacity(0.05)
                                 : Color.cardBackground)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadius.medium)
                             .stroke(
                                 isSelected 
-                                    ? plan.themeColorSwiftUI 
+                                    ? themeColor 
                                     : (isCompleted 
-                                        ? plan.themeColorSwiftUI.opacity(0.3)
+                                        ? themeColor.opacity(0.3)
                                         : Color.borderGray), 
                                 lineWidth: isSelected ? 2 : 1
                             )
@@ -476,11 +495,23 @@ struct TimeBlockCard: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    private func formatTime(_ timeInterval: TimeInterval) -> String {
+        let hours = Int(timeInterval) / 3600
+        let minutes = (Int(timeInterval) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h\(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
 }
 
 // 右侧任务自定义区域
 struct TaskCustomizationArea: View {
-    let selectedPlan: PlanItem?
+    @EnvironmentObject var dataManager: DataManager
+    let selectedTimeBar: TimeBar?
     @Binding var customProject: String
     @Binding var taskDescription: String
     @Binding var expectedTime: String
@@ -490,8 +521,20 @@ struct TaskCustomizationArea: View {
     
     @State private var expectedMinutes: Int = 30
     
+    private var selectedActivity: Activity? {
+        guard let selectedTimeBar = selectedTimeBar else { return nil }
+        return dataManager.getActivity(by: selectedTimeBar.activityId)
+    }
+    
+    private var selectedActivityThemeColor: Color {
+        if let activity = selectedActivity {
+            return Color(hex: activity.themeColor)
+        }
+        return Color.primaryGreen
+    }
+    
     var canStart: Bool {
-        let hasProject = selectedPlan != nil || !customProject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasProject = selectedTimeBar != nil || !customProject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return hasProject
     }
     
@@ -525,7 +568,7 @@ struct TaskCustomizationArea: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     // 项目信息
-                    if selectedPlan == nil {
+                    if selectedTimeBar == nil {
                         VStack(alignment: .leading, spacing: Spacing.md) {
                             Text("项目名称")
                                 .font(.headline)
@@ -547,9 +590,9 @@ struct TaskCustomizationArea: View {
                                         .fill(
                                             RadialGradient(
                                                 gradient: Gradient(colors: [
-                                                    selectedPlan!.themeColorSwiftUI.opacity(0.9),
-                                                    selectedPlan!.themeColorSwiftUI,
-                                                    selectedPlan!.themeColorSwiftUI.opacity(0.7)
+                                                    selectedActivityThemeColor.opacity(0.9),
+                                                    selectedActivityThemeColor,
+                                                    selectedActivityThemeColor.opacity(0.7)
                                                 ]),
                                                 center: .center,
                                                 startRadius: 0,
@@ -557,7 +600,7 @@ struct TaskCustomizationArea: View {
                                             )
                                         )
                                         .frame(width: 24, height: 24)
-                                        .shadow(color: selectedPlan!.themeColorSwiftUI.opacity(0.6), radius: 2, x: 0, y: 1)
+                                        .shadow(color: selectedActivityThemeColor.opacity(0.6), radius: 2, x: 0, y: 1)
                                     
                                     Circle()
                                         .fill(Color.white.opacity(0.3))
@@ -565,7 +608,7 @@ struct TaskCustomizationArea: View {
                                         .offset(x: -3, y: -3)
                                 }
                                 
-                                Text(selectedPlan?.project ?? "")
+                                Text(selectedActivity?.name ?? "")
                                     .font(.body)
                                     .fontWeight(.medium)
                                     .foregroundColor(.primary)
@@ -575,10 +618,10 @@ struct TaskCustomizationArea: View {
                             .padding(Spacing.lg)
                             .background(
                                 RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                    .fill(selectedPlan?.themeColorSwiftUI.opacity(0.08) ?? Color.lightGreen)
+                                    .fill(selectedActivityThemeColor.opacity(0.08))
                                     .overlay(
                                         RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                            .stroke(selectedPlan?.themeColorSwiftUI.opacity(0.3) ?? Color.borderGray, lineWidth: 1)
+                                            .stroke(selectedActivityThemeColor.opacity(0.3), lineWidth: 1)
                                     )
                             )
                         }
@@ -803,24 +846,8 @@ struct BigCircleStartButton: View {
     
     // 获取今天的任务颜色
     private var todayTaskColors: [Color] {
-        let today = Calendar.current.startOfDay(for: Date())
-        let todaySessions = sessionViewModel.sessions.filter { session in
-            Calendar.current.isDate(session.startTime, inSameDayAs: today)
-        }
-        
-        let colors = todaySessions.prefix(3).map { $0.themeColorSwiftUI }
-        
-        // 如果没有任务，使用默认的渐变色
-        if colors.isEmpty {
-            return [Color.primaryGreen, Color.blue, Color.purple]
-        }
-        
-        // 确保至少有3个颜色（重复使用已有颜色）
-        var resultColors = Array(colors)
-        while resultColors.count < 3 {
-            resultColors.append(contentsOf: colors)
-        }
-        return Array(resultColors.prefix(3))
+        // 这里暂时使用默认颜色，如果需要可以从 DataManager 获取今天的会话
+        return [Color.primaryGreen, Color.blue, Color.purple]
     }
     
     var body: some View {
@@ -1066,6 +1093,4 @@ extension NSHapticFeedbackManager {
 
 #Preview {
     SessionView()
-        .environmentObject(SessionViewModel())
-        .environmentObject(PlanViewModel())
 }

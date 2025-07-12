@@ -23,13 +23,15 @@ class SessionViewModel: ObservableObject {
         endCurrentSession()
 
         let activityId: UUID
-        if !let activity = dataManager.getActivity(by: name) {
+        guard let activity = dataManager.getActivity(by: name) else {
             return
         }
         activityId = activity.id
         let newSession = Session(
+            id: UUID(),
             activityId: activityId,
             startTime: Date(),
+            endTime: nil,
             taskDescription: taskDescription
         )
         

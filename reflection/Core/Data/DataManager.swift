@@ -162,95 +162,104 @@ class DataManager: ObservableObject {
         return Array(activities.values)
     }
 
-    func getTimeBar(by id: UUID, in plan: Plan? = currentPlan) -> TimeBar? {
-        guard let plan = plan, let existingPlan = plans[plan.id] else { return nil }
+    func getTimeBar(by id: UUID, in plan: Plan? = nil) -> TimeBar? {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, let existingPlan = plans[targetPlan.id] else { return nil }
         return existingPlan.timeBars.first { $0.id == id }
     }
 
-    func getTimeBars(in plan: Plan? = currentPlan) -> [TimeBar] {
-        guard let plan = plan, let existingPlan = plans[plan.id] else { return [] }
+    func getTimeBars(in plan: Plan? = nil) -> [TimeBar] {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, let existingPlan = plans[targetPlan.id] else { return [] }
         return existingPlan.timeBars
     }
 
-    func addTimeBar(to plan: Plan = currentPlan, timeBar: TimeBar) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func addTimeBar(to plan: Plan? = nil, timeBar: TimeBar) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         existingPlan.timeBars.append(timeBar)
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
-
     }
 
-    func deleteTimeBar(from plan: Plan, timBarID: UUID) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func deleteTimeBar(from plan: Plan? = nil, timBarID: UUID) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         existingPlan.timeBars.removeAll { $0.id == timBarID }
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
-
     }
 
-    func deleteTimeBar(from plan: Plan, at indexSet: IndexSet) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func deleteTimeBar(from plan: Plan? = nil, at indexSet: IndexSet) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         existingPlan.timeBars.remove(atOffsets: indexSet)
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
-
     }
 
-    func updatedTimeBar(from plan: Plan, timeBar: TimeBar) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func updatedTimeBar(from plan: Plan? = nil, timeBar: TimeBar) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         if let timeBarIndex = existingPlan.timeBars.firstIndex(where: { $0.id == timeBar.id }) {
             existingPlan.timeBars[timeBarIndex] = timeBar
         } else {
             // 如果没有找到对应的时间段，添加新的时间段
             existingPlan.timeBars.append(timeBar)
         }
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
     }
 
-    func moveTimeBar(from source: IndexSet, to destination: Int, in plan: Plan = currentPlan) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func moveTimeBar(from source: IndexSet, to destination: Int, in plan: Plan? = nil) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         existingPlan.timeBars.move(fromOffsets: source, toOffset: destination)
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
-
     }
 
-    func moveTimeBar(fromIndex: Int, toIndex: Int, in plan: Plan = currentPlan) {
-        guard var existingPlan = plans[plan.id] else { return }
+    func moveTimeBar(fromIndex: Int, toIndex: Int, in plan: Plan? = nil) {
+        let targetPlan = plan ?? currentPlan
+        guard let targetPlan = targetPlan, var existingPlan = plans[targetPlan.id] else { return }
         guard fromIndex >= 0 && fromIndex < existingPlan.timeBars.count &&
               toIndex >= 0 && toIndex < existingPlan.timeBars.count &&
               fromIndex != toIndex else { return }
         
         let timeBar = existingPlan.timeBars.remove(at: fromIndex)
         existingPlan.timeBars.insert(timeBar, at: toIndex)
-        plans[plan.id] = existingPlan
+        existingPlan.updatedAt = Date()
+        plans[targetPlan.id] = existingPlan
         
         // 如果是当前计划，更新当前计划
-        if currentPlan?.id == plan.id {
+        if currentPlan?.id == targetPlan.id {
             currentPlan = existingPlan
         }
-
     }
     
     // MARK: - Plan Management
@@ -296,23 +305,24 @@ class DataManager: ObservableObject {
         }
     }
     
-    func addSessionToToday(activityId: UUID, startTime: Date, duration: TimeInterval) {
-        let today = Calendar.current.startOfDay(for: Date())
-        
-        todayDaySession = getTodayDaySession()
-        let newSession = Session(id: UUID(), activityId: activityId, startTime: startTime, duration: duration)
-        daySessions[todayDaySession.id].sessions.append(newSession)
+    func addSessionToToday(_ session: Session) {
+        guard var todayDaySession = getTodayDaySession() else { return }
+        todayDaySession.sessions.append(session)
+        daySessions[todayDaySession.id] = todayDaySession
     }
 
-    func updateSession(session: Session, from daySession: DaySession? = getTodayDaySession()) {
-        guard let daySession = daySession ?? getTodayDaySession() else { return }
+    func updateSession(session: Session, from daySession: DaySession? = nil) {
+        let targetDaySession = daySession ?? getTodayDaySession()
+        guard let targetDaySession = targetDaySession else { return }
         
-        if let index = daySession.sessions.firstIndex(where: { $0.id == session.id }) {
-            daySessions[daySession.id].sessions[index] = session
+        var updatedDaySession = targetDaySession
+        if let index = updatedDaySession.sessions.firstIndex(where: { $0.id == session.id }) {
+            updatedDaySession.sessions[index] = session
         } else {
             // 如果没有找到对应的会话，添加新的会话
-            daySessions[daySession.id].sessions.append(session)
+            updatedDaySession.sessions.append(session)
         }
+        daySessions[updatedDaySession.id] = updatedDaySession
     }
     
     // MARK: - Utility Methods

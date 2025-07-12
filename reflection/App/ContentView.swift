@@ -9,9 +9,12 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var planViewModel = PlanViewModel()
-    @StateObject private var sessionViewModel = SessionViewModel()
-    @StateObject private var statisticsViewModel = StatisticsViewModel()
+    // 改为使用 EnvironmentObject
+    @EnvironmentObject var dataManager: DataManager
+    @EnvironmentObject var planViewModel: PlanViewModel
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    @EnvironmentObject var statisticsViewModel: StatisticsViewModel
+
     
     @State private var selectedTab = 0
     @State private var windowSize: CGSize = .zero
@@ -31,17 +34,12 @@ struct ContentView: View {
                 switch selectedTab {
                 case 0:
                     PlanView()
-                        .environmentObject(planViewModel)
                 case 1:
                     SessionView()
-                        .environmentObject(sessionViewModel)
-                        .environmentObject(planViewModel)
                 case 2:
                     StatisticsView()
-                        .environmentObject(statisticsViewModel)
                 default:
                     PlanView()
-                        .environmentObject(planViewModel)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

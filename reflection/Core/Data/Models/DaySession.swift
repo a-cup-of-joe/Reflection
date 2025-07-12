@@ -1,16 +1,18 @@
+import Foundation
+
 struct DaySession: Identifiable, Codable {
     let id: UUID
-    let sessions: [Session]
+    var sessions: [Session]
     let createdAt: Date
 
-    func init() {
-        id = UUID()
-        sessions = []
-        createdAt = Calendar.current.startOfDay(for: Date())
+    init(id: UUID = UUID(), sessions: [Session] = [], createdAt: Date = Calendar.current.startOfDay(for: Date())) {
+        self.id = id
+        self.sessions = sessions
+        self.createdAt = createdAt
     }
 }
 
-struct Session: Identifiable, Codable {
+struct Session: Identifiable, Codable, Equatable {
     let id: UUID
     let activityId: UUID
     var startTime: Date
@@ -25,4 +27,12 @@ struct Session: Identifiable, Codable {
     }
 
     var taskDescription: String
+    
+    init(id: UUID = UUID(), activityId: UUID, startTime: Date, endTime: Date? = nil, taskDescription: String) {
+        self.id = id
+        self.activityId = activityId
+        self.startTime = startTime
+        self.endTime = endTime
+        self.taskDescription = taskDescription
+    }
 }

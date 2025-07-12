@@ -9,7 +9,7 @@ import SwiftUI
 import AppKit
 
 struct PlanView: View {
-    @EnvironmentObject var planViewModel = PlanViewModel.shared
+    @EnvironmentObject var planViewModel: PlanViewModel
     @State private var showingAddTimeBar = false
     @State private var selectedTimeBar: TimeBar?
     @State private var draggedIndex: Int? = nil
@@ -44,7 +44,7 @@ struct PlanView: View {
                                     selectedTimeBar = timeBar
                                 },
                                 onMove: { from, to in
-                                    planViewModel.movePlan(fromIndex: from, toIndex: to)
+                                    planViewModel.moveTimeBar(fromIndex: from, toIndex: to)
                                 }
                             )
                         }
@@ -99,12 +99,12 @@ struct PlanView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingAddPlan) {
+        .sheet(isPresented: $showingAddTimeBar) {
             CreatePlanView()
                 .environmentObject(planViewModel)
         }
-        .sheet(item: $selectedPlan) { plan in
-            EditPlanView(plan: plan)
+        .sheet(item: $selectedTimeBar) { timeBar in
+            EditPlanView(timeBarID: timeBar.id)
                 .environmentObject(planViewModel)
         }
     }
@@ -112,15 +112,28 @@ struct PlanView: View {
 
 // MARK: - TimeBarView
 struct TimeBarView: View {
-    let planViewModel = PlanViewModel.shared
+    @EnvironmentObject var planViewModel: PlanViewModel
     let timeBarID: UUID
-    let plannedTime = planViewModel.getPlannedTime(for: timeBarID)
-    let colorHex = planViewModel.getColorHex(for: timeBarID)
-    let name = planViewModel.getActivityName(for: timeBarID)
-    let formatTime = planViewModel.getFormattedPlannedTime(for: timeBarID)
     let onTap: () -> Void
     
     @State private var isHovered = false
+    
+    // Computed properties to avoid property initialization issues
+    var plannedTime: TimeInterval {
+        planViewModel.getPlannedTime(for: timeBarID)
+    }
+    
+    var colorHex: String {
+        planViewModel.getColorHex(for: timeBarID)
+    }
+    
+    var name: String {
+        planViewModel.getActivityName(for: timeBarID)
+    }
+    
+    var formatTime: String {
+        planViewModel.getFormattedPlannedTime(for: timeBarID)
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -218,7 +231,7 @@ struct TimeBarView: View {
 
 // MARK: - DraggableTimeBar
 struct DraggableTimeBar: View {
-    let planViewModel = PlanViewModel.shared
+    @EnvironmentObject var planViewModel: PlanViewModel
     let timeBarID: UUID
     let index: Int
     let totalItems: Int
@@ -377,7 +390,7 @@ struct DraggableTimeBar: View {
 // MARK: - EditPlanView
 struct EditPlanView: View {
     let timeBarID: UUID
-    @EnvironmentObject var planViewModel = PlanViewModel.shared
+    @EnvironmentObject var planViewModel: PlanViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var projectName: String
@@ -604,7 +617,7 @@ struct EditPlanView: View {
         
         planViewModel.updateTimeBar(
             timBarID: timeBarID,
-            project: projectName,
+            name: projectName,
             plannedTime: TimeInterval(totalMinutes * 60),
             themeColor: selectedThemeColor
         )

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct CreatePlanView: View {
-    @EnvironmentObject var planViewModel = PlanViewModel.shared
+    @EnvironmentObject var planViewModel: PlanViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var projectName = ""
@@ -207,7 +207,7 @@ struct CreatePlanView: View {
         let totalSeconds = TimeInterval(totalMinutes * 60)
         
         planViewModel.addTimeBar(
-            project: projectName,
+            name: projectName,
             plannedTime: totalSeconds,
             themeColor: selectedThemeColor
         )

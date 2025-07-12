@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+extension Array where Element: Equatable {
+    func removingDuplicates() -> [Element] {
+        var result: [Element] = []
+        for element in self {
+            if !result.contains(element) {
+                result.append(element)
+            }
+        }
+        return result
+    }
+}
+
 struct StartSessionView: View {
     @EnvironmentObject var sessionViewModel: SessionViewModel
     @EnvironmentObject var planViewModel: PlanViewModel
@@ -18,7 +30,9 @@ struct StartSessionView: View {
     @State private var showingCustomProject = false
     
     var availableProjects: [String] {
-        planViewModel.plans.map { $0.project }
+        planViewModel.getTimeBars().compactMap { timeBar in
+            planViewModel.getActivityName(for: timeBar.id)
+        }.removingDuplicates()
     }
     
     var body: some View {
@@ -109,9 +123,14 @@ struct StartSessionView: View {
         let project = showingCustomProject ? customProject : selectedProject
         
         // 查找对应计划的主题色
-        let themeColor = planViewModel.plans.first { $0.project == project }?.themeColor ?? "#00CE4A"
+        let timeBars = planViewModel.getTimeBars()
+        let themeColor = timeBars.first { timeBar in
+            planViewModel.getActivityName(for: timeBar.id) == project
+        }.map { timeBar in
+            planViewModel.getColorHex(for: timeBar.id)
+        } ?? "#00CE4A"
         
-        sessionViewModel.startSession(project: project, task: taskDescription, themeColor: themeColor)
+        sessionViewModel.startSession(name: project, taskDescription: taskDescription, themeColor: themeColor)
         dismiss()
     }
 }

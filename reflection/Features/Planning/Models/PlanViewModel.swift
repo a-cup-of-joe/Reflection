@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 class PlanViewModel: ObservableObject {
-    static let planViewModel = PlanViewModel()
+    static let shared = PlanViewModel()
     private let dataManager = DataManager.shared
     
     init() {
@@ -37,7 +37,7 @@ class PlanViewModel: ObservableObject {
     }
     
     func deleteTimeBar(at indexSet: IndexSet) {
-        dataManager.deleteTimeBar(at: indexSet)
+        dataManager.deleteTimeBar(from: nil, at: indexSet)
     }
     
     func updateTimeBar(timBarID: UUID, name: String, plannedTime: TimeInterval, themeColor: String) {
@@ -59,20 +59,20 @@ class PlanViewModel: ObservableObject {
         }
 
         let timeBar = TimeBar(id: timBarID, activityId: activityId, plannedTime: plannedTime)
-        dataManager.updatedTimeBar(timeBar: timeBar)
+        dataManager.updatedTimeBar(from: nil, timeBar: timeBar)
     }
 
     func deleteTimeBar(timBarID: UUID) {
-        dataManager.deleteTimeBar(timBarID: timBarID)
+        dataManager.deleteTimeBar(from: nil, timBarID: timBarID)
     }
     
     // MARK: - Drag and Drop Support
     func moveTimeBar(from source: IndexSet, to destination: Int) {
-        dataManager.moveTimeBar(from: source, to: destination)
+        dataManager.moveTimeBar(from: source, to: destination, in: nil)
     }
     
     func moveTimeBar(fromIndex: Int, toIndex: Int) {
-        dataManager.moveTimeBar(fromIndex: fromIndex, toIndex: toIndex)
+        dataManager.moveTimeBar(fromIndex: fromIndex, toIndex: toIndex, in: nil)
     }
 
     func getTimeBar(by id: UUID) -> TimeBar? {
@@ -83,8 +83,8 @@ class PlanViewModel: ObservableObject {
         return dataManager.getTimeBars()
     }
 
-    func getPlannedTime(for timeBarID: UUID) -> TimeInterval? {
-        guard let timeBar = dataManager.getTimeBar(by: timeBarID) else { return nil }
+    func getPlannedTime(for timeBarID: UUID) -> TimeInterval {
+        guard let timeBar = dataManager.getTimeBar(by: timeBarID) else { return 0 }
         return timeBar.plannedTime
     }
 
@@ -104,16 +104,16 @@ class PlanViewModel: ObservableObject {
         return activity.themeColor
     }
 
-    func getActivityName(for timeBarID: UUID) -> String? {
+    func getActivityName(for timeBarID: UUID) -> String {
         guard let timeBar = dataManager.getTimeBar(by: timeBarID),
               let activity = dataManager.getActivity(by: timeBar.activityId) else {
-            return nil
+            return "未知活动" // 默认名称
         }
         return activity.name
     }
 
-    func getFormattedPlannedTime(for timeBarID: UUID) -> String? {
-        guard let timeBar = dataManager.getTimeBar(by: timeBarID) else { return nil }
+    func getFormattedPlannedTime(for timeBarID: UUID) -> String {
+        guard let timeBar = dataManager.getTimeBar(by: timeBarID) else { return "0:00" }
         let totalMinutes = Int(timeBar.plannedTime / 60)
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60
