@@ -7,7 +7,8 @@
 
 import Foundation
 
-class DataManager {
+/// 数据管理器，负责应用数据的持久化存储
+final class DataManager {
     static let shared = DataManager()
     
     private let plansKey = "saved_plans"

@@ -9,16 +9,28 @@
 import SwiftUI
 
 struct ContentView: View {
+    // MARK: - Constants
+    private enum Constants {
+        static let sidebarWidth: CGFloat = 64
+        static let sidebarPadding: CGFloat = 12
+        static let sidebarHideThreshold: CGFloat = 600
+        static let windowControlButtonHeight: CGFloat = 32
+    }
+    
+    private enum TabIndex {
+        static let planning = 0
+        static let session = 1
+        static let statistics = 2
+    }
+    
+    // MARK: - State Properties
     @StateObject private var planViewModel = PlanViewModel()
     @StateObject private var sessionViewModel = SessionViewModel()
     @StateObject private var statisticsViewModel = StatisticsViewModel()
     
-    @State private var selectedTab = 0
+    @State private var selectedTab = TabIndex.planning
     @State private var windowSize: CGSize = .zero
     @State private var shouldHideSidebar = false
-    
-    // 侧边栏隐藏的阈值宽度
-    private let sidebarHideThreshold: CGFloat = 600
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -27,113 +39,131 @@ struct ContentView: View {
                 .ignoresSafeArea()
             
             // 主内容区域
-            Group {
-                switch selectedTab {
-                case 0:
-                    PlanView()
-                        .environmentObject(planViewModel)
-                case 1:
-                    SessionView()
-                        .environmentObject(sessionViewModel)
-                        .environmentObject(planViewModel)
-                case 2:
-                    StatisticsView()
-                        .environmentObject(statisticsViewModel)
-                default:
-                    PlanView()
-                        .environmentObject(planViewModel)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.appBackground)
-            .padding(.leading, shouldHideSidebar ? 0 : (64 + 12)) // 动态调整padding
-            .animation(.easeInOut(duration: 0.3), value: shouldHideSidebar)
+            mainContentView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.appBackground)
+                .padding(.leading, shouldHideSidebar ? 0 : (Constants.sidebarWidth + Constants.sidebarPadding))
+                .animation(.easeInOut(duration: 0.3), value: shouldHideSidebar)
             
-            // 悬浮的侧边栏面板
+            // 侧边栏
             if !shouldHideSidebar {
-                VStack(spacing: Spacing.xl) {
-                    // Logo 或应用标识
-                    VStack(spacing: Spacing.sm) {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.primaryGreen)
-                        
-                        Text("R")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.primaryGreen)
-                    }
-                    .padding(.top, Spacing.md)
-                    
-                    // 导航图标按钮
-                    VStack(spacing: Spacing.md) {
-                        SidebarIconButton(
-                            icon: "calendar",
-                            isSelected: selectedTab == 0
-                        ) {
-                            selectedTab = 0
-                        }
-                        
-                        SidebarIconButton(
-                            icon: "timer",
-                            isSelected: selectedTab == 1
-                        ) {
-                            selectedTab = 1
-                        }
-                        
-                        SidebarIconButton(
-                            icon: "chart.bar",
-                            isSelected: selectedTab == 2
-                        ) {
-                            selectedTab = 2
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .frame(width: 64)
-                .background(Color.white)
-                .cornerRadius(CornerRadius.medium)
-                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                .padding(.top, 32) // 为窗口控制按钮留出空间
-                .padding(.leading, 12) // 左侧间距
-                .padding(.bottom, 12) // 底部间距
-                .transition(.asymmetric(
-                    insertion: .move(edge: .leading).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
+                sidebarView
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
             }
         }
         .edgesIgnoringSafeArea(.top)
-        .background(
-            GeometryReader { geometry in
-                Color.clear
-                    .onAppear {
-                        windowSize = geometry.size
-                        updateSidebarVisibility()
-                    }
-                    .onChange(of: geometry.size) { oldSize, newSize in
-                        windowSize = newSize
-                        updateSidebarVisibility()
-                    }
-            }
-        )
+        .background(geometryReader)
         .appStyle()
         .onChange(of: sessionViewModel.sessions) {
-            // 当会话更新时，刷新统计数据
             statisticsViewModel.refreshStatistics()
         }
-        .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
+        .onChange(of: sessionViewModel.currentSession) { _, _ in
             updateSidebarVisibility()
         }
-        .onChange(of: selectedTab) { oldValue, newValue in
+        .onChange(of: selectedTab) { _, _ in
             updateSidebarVisibility()
+        }
+    }
+    
+    // MARK: - Computed Properties
+    private var mainContentView: some View {
+        Group {
+            switch selectedTab {
+            case TabIndex.planning:
+                PlanView()
+                    .environmentObject(planViewModel)
+            case TabIndex.session:
+                SessionView()
+                    .environmentObject(sessionViewModel)
+                    .environmentObject(planViewModel)
+            case TabIndex.statistics:
+                StatisticsView()
+                    .environmentObject(statisticsViewModel)
+            default:
+                PlanView()
+                    .environmentObject(planViewModel)
+            }
+        }
+    }
+    
+    private var sidebarView: some View {
+        VStack(spacing: Spacing.xl) {
+            // Logo 或应用标识
+            appLogo
+            
+            // 导航图标按钮
+            navigationButtons
+            
+            Spacer()
+        }
+        .frame(width: Constants.sidebarWidth)
+        .background(Color.white)
+        .cornerRadius(CornerRadius.medium)
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+        .padding(.top, Constants.windowControlButtonHeight)
+        .padding(.leading, Constants.sidebarPadding)
+        .padding(.bottom, Constants.sidebarPadding)
+    }
+    
+    private var appLogo: some View {
+        VStack(spacing: Spacing.sm) {
+            Image(systemName: "circle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.primaryGreen)
+            
+            Text("R")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.primaryGreen)
+        }
+        .padding(.top, Spacing.md)
+    }
+    
+    private var navigationButtons: some View {
+        VStack(spacing: Spacing.md) {
+            SidebarIconButton(
+                icon: "calendar",
+                isSelected: selectedTab == TabIndex.planning
+            ) {
+                selectedTab = TabIndex.planning
+            }
+            
+            SidebarIconButton(
+                icon: "timer",
+                isSelected: selectedTab == TabIndex.session
+            ) {
+                selectedTab = TabIndex.session
+            }
+            
+            SidebarIconButton(
+                icon: "chart.bar",
+                isSelected: selectedTab == TabIndex.statistics
+            ) {
+                selectedTab = TabIndex.statistics
+            }
+        }
+    }
+    
+    private var geometryReader: some View {
+        GeometryReader { geometry in
+            Color.clear
+                .onAppear {
+                    windowSize = geometry.size
+                    updateSidebarVisibility()
+                }
+                .onChange(of: geometry.size) { oldSize, newSize in
+                    windowSize = newSize
+                    updateSidebarVisibility()
+                }
         }
     }
     
     // MARK: - Private Methods
     private func updateSidebarVisibility() {
-        let isWindowTooNarrow = windowSize.width < sidebarHideThreshold
-        let isInFocusMode = selectedTab == 1 && sessionViewModel.currentSession != nil
+        let isWindowTooNarrow = windowSize.width < Constants.sidebarHideThreshold
+        let isInFocusMode = selectedTab == TabIndex.session && sessionViewModel.currentSession != nil
         
         let newShouldHide = isWindowTooNarrow || isInFocusMode
         
@@ -145,30 +175,17 @@ struct ContentView: View {
 
 // MARK: - SidebarIconButton
 struct SidebarIconButton: View {
+    // MARK: - Properties
     let icon: String
     let isSelected: Bool
     let action: () -> Void
     
     @State private var isHovered = false
     
+    // MARK: - Body
     var body: some View {
         Button(action: action) {
-            VStack(spacing: Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(iconColor)
-                    .frame(width: 28, height: 28)
-                
-                Circle()
-                    .fill(isSelected ? Color.primaryGreen : Color.clear)
-                    .frame(width: 3, height: 3)
-            }
-            .padding(.vertical, Spacing.xs)
-            .padding(.horizontal, Spacing.xs)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.small)
-                    .fill(backgroundColor)
-            )
+            buttonContent
         }
         .buttonStyle(PlainButtonStyle())
         .onHover { hovering in
@@ -176,6 +193,27 @@ struct SidebarIconButton: View {
         }
     }
     
+    // MARK: - Private Views
+    private var buttonContent: some View {
+        VStack(spacing: Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(iconColor)
+                .frame(width: 28, height: 28)
+            
+            Circle()
+                .fill(isSelected ? Color.primaryGreen : Color.clear)
+                .frame(width: 3, height: 3)
+        }
+        .padding(.vertical, Spacing.xs)
+        .padding(.horizontal, Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadius.small)
+                .fill(backgroundColor)
+        )
+    }
+    
+    // MARK: - Computed Properties
     private var iconColor: Color {
         if isSelected {
             return .white

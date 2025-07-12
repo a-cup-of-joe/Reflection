@@ -109,7 +109,7 @@ struct SessionView: View {
                         currentSession.themeColorSwiftUI.opacity(0.05).ignoresSafeArea()
                         VStack(spacing: Spacing.xxl * 2) {
                             Spacer()
-                            Text(formatElapsedTime(sessionViewModel.elapsedTime))
+                            Text(sessionViewModel.elapsedTime.formatted())
                                 .font(.system(size: 72, weight: .light, design: .monospaced))
                                 .foregroundColor(.white)
                                 .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 2)
@@ -228,12 +228,7 @@ struct SessionView: View {
         }
     }
 
-    private func formatElapsedTime(_ timeInterval: TimeInterval) -> String {
-        let hours = Int(timeInterval) / 3600
-        let minutes = (Int(timeInterval) % 3600) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d:%02d", hours, minutes, seconds)
-    }
+
 }
 
 struct ActiveSessionCard: View {
@@ -332,12 +327,12 @@ struct SessionHistoryCard: View {
             
             // 时间信息
             VStack(alignment: .trailing, spacing: Spacing.xs) {
-                Text(TimeFormatters.formatDuration(session.duration))
+                Text(session.duration.formatted())
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(session.themeColorSwiftUI)
                 
-                Text(TimeFormatters.formatTime(session.startTime))
+                Text(session.startTime.formattedTime())
                     .font(.caption2)
                     .foregroundColor(.secondaryGray)
             }
@@ -477,7 +472,7 @@ struct TimeBlockCard: View {
                     
                     // 时间信息
                     HStack(spacing: Spacing.xs) {
-                        Text(plan.actualTimeFormatted)
+                        Text(plan.actualTime.formatted())
                             .font(.caption)
                             .foregroundColor(isCompleted ? .primaryGreen : .secondaryGray)
                         
@@ -485,7 +480,7 @@ struct TimeBlockCard: View {
                             .font(.caption)
                             .foregroundColor(.secondaryGray)
                         
-                        Text(plan.plannedTimeFormatted)
+                        Text(plan.plannedTime.formatted())
                             .font(.caption)
                             .foregroundColor(.secondaryGray)
                         
@@ -683,7 +678,7 @@ struct TaskCustomizationArea: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 
-                                Text(formatTimeDisplay())
+                                Text(expectedMinutes.formattedAsTime())
                                     .font(.system(size: 18, weight: .medium, design: .monospaced))
                                     .foregroundColor(.primary)
                                     .frame(width: 80)
@@ -811,21 +806,9 @@ struct TaskCustomizationArea: View {
         updateExpectedTimeString()
     }
     
-    // 格式化时间显示
-    private func formatTimeDisplay() -> String {
-        let hours = expectedMinutes / 60
-        let mins = expectedMinutes % 60
-        
-        if hours > 0 {
-            return mins > 0 ? "\(hours)h\(mins)m" : "\(hours)h"
-        } else {
-            return "\(mins)m"
-        }
-    }
-    
     // 更新预期时间字符串
     private func updateExpectedTimeString() {
-        expectedTime = formatTimeDisplay()
+        expectedTime = expectedMinutes.formattedAsTime()
     }
 }
 

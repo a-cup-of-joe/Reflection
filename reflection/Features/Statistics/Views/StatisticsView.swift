@@ -67,13 +67,13 @@ struct OverallStatsCard: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 2), spacing: Spacing.md) {
                 StatItemCard(
                     title: "总计划时间",
-                    value: TimeFormatters.formatDuration(stats.totalPlannedTime),
+                    value: stats.totalPlannedTime.formatted(),
                     color: .primaryGreen
                 )
                 
                 StatItemCard(
                     title: "总实际时间",
-                    value: TimeFormatters.formatDuration(stats.totalActualTime),
+                    value: stats.totalActualTime.formatted(),
                     color: .primaryGreen
                 )
                 
@@ -85,7 +85,7 @@ struct OverallStatsCard: View {
                 
                 StatItemCard(
                     title: "平均会话时长",
-                    value: TimeFormatters.formatDuration(stats.averageSessionDuration),
+                    value: stats.averageSessionDuration.formatted(),
                     color: .primaryGreen
                 )
             }
@@ -166,11 +166,11 @@ struct ProjectStatCard: View {
                     .foregroundColor(.primary)
                 
                 HStack(spacing: Spacing.lg) {
-                    Text("计划: \(TimeFormatters.formatDuration(project.plannedTime))")
+                    Text("计划: \(project.plannedTime.formatted())")
                         .font(.caption)
                         .foregroundColor(.secondaryGray)
                     
-                    Text("实际: \(TimeFormatters.formatDuration(project.actualTime))")
+                    Text("实际: \(project.actualTime.formatted())")
                         .font(.caption)
                         .foregroundColor(.secondaryGray)
                     

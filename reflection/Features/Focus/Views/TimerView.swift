@@ -21,7 +21,7 @@ struct TimerView: View {
                 )
                 
                 VStack(spacing: Spacing.sm) {
-                    Text(TimeFormatters.formatDuration(elapsedTime))
+                    Text(elapsedTime.formatted())
                         .font(.system(size: 36, weight: .bold, design: .monospaced))
                         .foregroundColor(.primary)
                     

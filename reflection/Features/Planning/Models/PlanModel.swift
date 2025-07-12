@@ -8,13 +8,14 @@
 import Foundation
 import SwiftUI
 
+// MARK: - PlanItem Model
 struct PlanItem: Identifiable, Codable {
-    var id: UUID = UUID()
+    let id: UUID
     var project: String
-    var plannedTime: TimeInterval // 计划时间（秒）
-    var actualTime: TimeInterval = 0 // 实际投入时间（秒）
-    var createdAt: Date = Date()
-    var themeColor: String = "#00CE4A" // 主题色，默认为主绿色
+    var plannedTime: TimeInterval
+    var actualTime: TimeInterval
+    let createdAt: Date
+    var themeColor: String
     
     init(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
         self.id = UUID()
@@ -24,55 +25,72 @@ struct PlanItem: Identifiable, Codable {
         self.createdAt = Date()
         self.themeColor = themeColor
     }
+}
+
+// MARK: - PlanItem Extensions
+extension PlanItem {
     
-    var plannedTimeFormatted: String {
-        TimeFormatters.formatDuration(plannedTime)
-    }
-    
-    var actualTimeFormatted: String {
-        TimeFormatters.formatDuration(actualTime)
-    }
-    
+    /// 实际时间与计划时间的差值
     var timeDifference: TimeInterval {
         actualTime - plannedTime
     }
     
+    /// 完成度百分比（0-1）
     var completionPercentage: Double {
         guard plannedTime > 0 else { return 0 }
         return min(actualTime / plannedTime, 1.0)
     }
     
+    /// SwiftUI 颜色对象
     var themeColorSwiftUI: Color {
         Color(hex: themeColor)
     }
     
-    // 检查是否为特殊材质
+    /// 是否为特殊材质
     var isSpecialMaterial: Bool {
         Color.isSpecialMaterial(themeColor)
     }
     
-    // 获取特殊材质渐变
+    /// 特殊材质渐变
     var specialMaterialGradient: LinearGradient? {
         Color.getSpecialMaterialGradient(themeColor)
     }
     
-    // 获取特殊材质阴影
+    /// 特殊材质阴影
     var specialMaterialShadow: Color? {
         Color.getSpecialMaterialShadow(themeColor)
     }
 }
 
-class PlanViewModel: ObservableObject {
+// MARK: - PlanViewModel
+final class PlanViewModel: ObservableObject {
     @Published var plans: [PlanItem] = []
+    
     private let dataManager = DataManager.shared
     
     init() {
         loadPlans()
     }
     
+    // MARK: - Public Methods
     func addPlan(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
-        let newPlan = PlanItem(project: project, plannedTime: plannedTime, themeColor: themeColor)
+        let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedProject.isEmpty else { return }
+        
+        let newPlan = PlanItem(project: trimmedProject, plannedTime: plannedTime, themeColor: themeColor)
         plans.append(newPlan)
+        savePlans()
+    }
+    
+    func updatePlan(planId: UUID, project: String, plannedTime: TimeInterval, themeColor: String) {
+        guard let index = plans.firstIndex(where: { $0.id == planId }) else { return }
+        
+        let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedProject.isEmpty else { return }
+        
+        plans[index].project = trimmedProject
+        plans[index].plannedTime = plannedTime
+        plans[index].themeColor = themeColor
         savePlans()
     }
     
@@ -81,24 +99,15 @@ class PlanViewModel: ObservableObject {
         savePlans()
     }
     
-    func updateActualTime(for planId: UUID, additionalTime: TimeInterval) {
-        if let index = plans.firstIndex(where: { $0.id == planId }) {
-            plans[index].actualTime += additionalTime
-            savePlans()
-        }
-    }
-    
-    func updatePlan(planId: UUID, project: String, plannedTime: TimeInterval, themeColor: String) {
-        if let index = plans.firstIndex(where: { $0.id == planId }) {
-            plans[index].project = project
-            plans[index].plannedTime = plannedTime
-            plans[index].themeColor = themeColor
-            savePlans()
-        }
-    }
-    
     func deletePlan(planId: UUID) {
         plans.removeAll { $0.id == planId }
+        savePlans()
+    }
+    
+    func updateActualTime(for planId: UUID, additionalTime: TimeInterval) {
+        guard let index = plans.firstIndex(where: { $0.id == planId }) else { return }
+        
+        plans[index].actualTime += additionalTime
         savePlans()
     }
     
@@ -109,9 +118,7 @@ class PlanViewModel: ObservableObject {
     }
     
     func movePlan(fromIndex: Int, toIndex: Int) {
-        guard fromIndex >= 0 && fromIndex < plans.count &&
-              toIndex >= 0 && toIndex <= plans.count &&
-              fromIndex != toIndex else { return }
+        guard isValidMove(fromIndex: fromIndex, toIndex: toIndex) else { return }
         
         let plan = plans.remove(at: fromIndex)
         let insertIndex = toIndex > fromIndex ? toIndex - 1 : toIndex
@@ -119,11 +126,18 @@ class PlanViewModel: ObservableObject {
         savePlans()
     }
     
+    // MARK: - Private Helper Methods
     private func loadPlans() {
         plans = dataManager.loadPlans()
     }
     
     private func savePlans() {
         dataManager.savePlans(plans)
+    }
+    
+    private func isValidMove(fromIndex: Int, toIndex: Int) -> Bool {
+        fromIndex >= 0 && fromIndex < plans.count &&
+        toIndex >= 0 && toIndex <= plans.count &&
+        fromIndex != toIndex
     }
 }
