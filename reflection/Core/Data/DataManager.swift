@@ -303,6 +303,17 @@ class DataManager: ObservableObject {
         let newSession = Session(id: UUID(), activityId: activityId, startTime: startTime, duration: duration)
         daySessions[todayDaySession.id].sessions.append(newSession)
     }
+
+    func updateSession(session: Session, from daySession: DaySession? = getTodayDaySession()) {
+        guard let daySession = daySession ?? getTodayDaySession() else { return }
+        
+        if let index = daySession.sessions.firstIndex(where: { $0.id == session.id }) {
+            daySessions[daySession.id].sessions[index] = session
+        } else {
+            // 如果没有找到对应的会话，添加新的会话
+            daySessions[daySession.id].sessions.append(session)
+        }
+    }
     
     // MARK: - Utility Methods
     func clearAllData() {

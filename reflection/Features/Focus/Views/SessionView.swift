@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct SessionView: View {
-    @EnvironmentObject var sessionViewModel: SessionViewModel
-    @EnvironmentObject var dataManager: AppDataManager.shared
+    @EnvironmentObject var sessionViewModel = SessionViewModel.shared
     
     // 面板状态管理
     @State private var currentPanel: SessionPanel = .idle
@@ -300,49 +299,6 @@ struct IdleSessionCard: View {
         }
         .padding(Spacing.xl)
         .cardStyle()
-    }
-}
-
-struct SessionHistoryCard: View {
-    let session: FocusSession
-    
-    var body: some View {
-        HStack(spacing: Spacing.lg) {
-            // 项目信息
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text(session.projectName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.primary)
-                
-                Text(session.taskDescription)
-                    .font(.caption)
-                    .foregroundColor(.secondaryGray)
-                    .lineLimit(2)
-            }
-            
-            Spacer()
-            
-            // 时间信息
-            VStack(alignment: .trailing, spacing: Spacing.xs) {
-                Text(TimeFormatters.formatDuration(session.duration))
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(session.themeColorSwiftUI)
-                
-                Text(TimeFormatters.formatTime(session.startTime))
-                    .font(.caption2)
-                    .foregroundColor(.secondaryGray)
-            }
-        }
-        .padding(Spacing.md)            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.small)
-                    .fill(Color.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.small)
-                            .stroke(Color.borderGray, lineWidth: 1)
-                    )
-            )
     }
 }
 

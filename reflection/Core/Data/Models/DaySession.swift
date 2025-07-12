@@ -13,6 +13,16 @@ struct DaySession: Identifiable, Codable {
 struct Session: Identifiable, Codable {
     let id: UUID
     let activityId: UUID
-    let startTime: Date
-    let duration: TimeInterval
+    var startTime: Date
+    var endTime: Date?
+    var duration: TimeInterval {
+        guard let endTime = endTime else { return 0 }
+        return endTime.timeIntervalSince(startTime)
+    }
+
+    var isActive: Bool {
+        endTime == nil
+    }
+
+    var taskDescription: String
 }
