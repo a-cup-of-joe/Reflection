@@ -118,11 +118,12 @@ final class PlanViewModel: ObservableObject {
     }
     
     func movePlan(fromIndex: Int, toIndex: Int) {
-        guard isValidMove(fromIndex: fromIndex, toIndex: toIndex) else { return }
+        guard isValidMove(fromIndex: fromIndex, toIndex: toIndex) else { 
+            return 
+        }
         
-        let plan = plans.remove(at: fromIndex)
-        let insertIndex = toIndex > fromIndex ? toIndex - 1 : toIndex
-        plans.insert(plan, at: insertIndex)
+        // 使用 Swift 的内置方法来移动元素
+        plans.move(fromOffsets: IndexSet([fromIndex]), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
         savePlans()
     }
     

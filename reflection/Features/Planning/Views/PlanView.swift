@@ -11,13 +11,13 @@ import AppKit
 // MARK: - DragState
 struct DragState {
     var draggedIndex: Int?
-    var dragOffset: CGFloat = 0
     var targetIndex: Int?
+    var isDragging: Bool = false
     
     mutating func reset() {
         draggedIndex = nil
-        dragOffset = 0
         targetIndex = nil
+        isDragging = false
     }
 }
 
@@ -219,121 +219,101 @@ struct DraggableTimeBar: View {
     let onTap: () -> Void
     let onMove: (Int, Int) -> Void
     
-    @State private var localDragOffset: CGSize = .zero
+    @State private var dragOffset: CGSize = .zero
     @State private var isDragging = false
-    @State private var windowState = WindowState()
     
-    private var isBeingDragged: Bool { dragState.draggedIndex == index }
-    private var itemHeight: CGFloat { 44 + Spacing.md }
+    private let itemHeight: CGFloat = 44 + 16 // TimeBar高度 + spacing
     
-    // MARK: - WindowState
-    struct WindowState {
-        var isMovable = true
-        var hasChanged = false
-    }
-    
+    // 计算当前元素是否应该移动让位
     private var shouldShift: Bool {
         guard let draggedIndex = dragState.draggedIndex,
               let targetIndex = dragState.targetIndex,
               draggedIndex != index else { return false }
         
+        // 如果拖拽的元素要移动到这个位置，或者要经过这个位置
         if draggedIndex < targetIndex {
+            // 向下拖拽：被拖拽元素下方的元素向上移动
             return index > draggedIndex && index <= targetIndex
         } else {
+            // 向上拖拽：被拖拽元素上方的元素向下移动
             return index >= targetIndex && index < draggedIndex
         }
     }
     
+    // 计算移动偏移量
     private var shiftOffset: CGFloat {
-        guard shouldShift,
-              let draggedIndex = dragState.draggedIndex,
-              let targetIndex = dragState.targetIndex else { return 0 }
+        guard shouldShift else { return 0 }
         
-        return draggedIndex < targetIndex ? -itemHeight : itemHeight
+        if let draggedIndex = dragState.draggedIndex, let targetIndex = dragState.targetIndex {
+            return draggedIndex < targetIndex ? -itemHeight : itemHeight
+        }
+        return 0
     }
     
-    private func calculateTargetIndex(dragOffset: CGFloat) -> Int {
-        guard dragState.draggedIndex == index else { return index }
+    // 基于拖拽距离计算目标位置
+    private func calculateTargetIndex(from dragOffset: CGFloat) -> Int {
+        // 计算拖拽了多少个元素的高度
+        let draggedItems = Int(round(dragOffset / itemHeight))
+        let newIndex = index + draggedItems
         
-        let threshold = itemHeight * 0.5
-        var newIndex = index
-        
-        if dragOffset > threshold {
-            newIndex = index + Int((dragOffset + threshold) / itemHeight)
-        } else if dragOffset < -threshold {
-            newIndex = index + Int((dragOffset - threshold) / itemHeight)
-        }
-        
+        // 确保在有效范围内
         return max(0, min(totalItems - 1, newIndex))
     }
     
     var body: some View {
-        TimeBarView(plan: plan, onTap: { if !isDragging { onTap() } })
-            .offset(y: isBeingDragged ? localDragOffset.height : shiftOffset)
-            .scaleEffect(isDragging ? 1.02 : 1.0)
-            .zIndex(isDragging ? 1 : 0)
-            .animation(.easeInOut(duration: 0.2), value: isDragging)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: shiftOffset)
-            .gesture(dragGesture)
-    }
-    
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .local)
-            .onChanged { value in
-                if !isDragging {
-                    startDragging()
-                }
-                
-                let verticalTranslation = value.translation.height
-                localDragOffset = CGSize(width: 0, height: verticalTranslation)
-                dragState.dragOffset = verticalTranslation
-                
-                let newTargetIndex = calculateTargetIndex(dragOffset: verticalTranslation)
-                if newTargetIndex != dragState.targetIndex {
-                    dragState.targetIndex = newTargetIndex
-                }
-            }
-            .onEnded { value in
-                let finalTargetIndex = calculateTargetIndex(dragOffset: value.translation.height)
-                let shouldMove = abs(value.translation.height) > 20 && finalTargetIndex != index
-                
-                if shouldMove {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        onMove(index, finalTargetIndex)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                            resetDragState()
-                        }
+        TimeBarView(plan: plan, onTap: { 
+            if !isDragging { onTap() } 
+        })
+        .offset(y: dragState.draggedIndex == index ? dragOffset.height : shiftOffset)
+        .scaleEffect(isDragging ? 1.05 : 1.0)
+        .zIndex(isDragging ? 1000 : 0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: shiftOffset)
+        .animation(.easeInOut(duration: 0.2), value: isDragging)
+        .gesture(
+            DragGesture(coordinateSpace: .local)
+                .onChanged { value in
+                    if !isDragging {
+                        startDragging()
                     }
-                } else {
-                    resetDragState()
+                    
+                    dragOffset = value.translation
+                    
+                    // 实时计算目标位置
+                    let newTargetIndex = calculateTargetIndex(from: value.translation.height)
+                    if newTargetIndex != dragState.targetIndex {
+                        print("📍 [Index \(index)] Target changed from \(dragState.targetIndex ?? -1) to \(newTargetIndex)")
+                        dragState.targetIndex = newTargetIndex
+                    }
                 }
-            }
+                .onEnded { value in
+                    let finalTargetIndex = calculateTargetIndex(from: value.translation.height)
+                    let threshold = itemHeight * 0.3
+                    
+                    // 只有拖拽距离足够大且目标位置不同时才移动
+                    if abs(value.translation.height) > threshold && finalTargetIndex != index {
+                        onMove(index, finalTargetIndex)
+                    }
+                    
+                    endDragging()
+                }
+        )
     }
     
     private func startDragging() {
         isDragging = true
+        dragState.isDragging = true
         dragState.draggedIndex = index
-        
-        if let window = NSApp.keyWindow {
-            windowState.isMovable = window.isMovable
-            window.isMovable = false
-            windowState.hasChanged = true
-        }
+        dragState.targetIndex = index
     }
     
-    private func resetDragState() {
-        if windowState.hasChanged {
-            NSApp.windows.forEach { window in
-                if !window.isMovable {
-                    window.isMovable = windowState.isMovable
-                }
-            }
-            windowState.hasChanged = false
-        }
-        
+    private func endDragging() {
         isDragging = false
-        dragState.reset()
-        localDragOffset = .zero
+        dragOffset = .zero
+        
+        // 短暂延迟后重置状态，让动画完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            dragState.reset()
+        }
     }
 }
 
