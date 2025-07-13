@@ -10,13 +10,22 @@ import SwiftUI
 struct IdleSessionView: View {
     let onStartSession: () -> Void
     
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    
     var body: some View {
         VStack {
             Spacer()
-            BigCircleStartButton {
-                onStartSession()
+            
+            ZStack {
+                // 行星轨道系统
+                PlanetarySystem()
+                
+                // 专注按钮
+                BigCircleStartButton {
+                    onStartSession()
+                }
+                .padding(.horizontal, Spacing.xl)
             }
-            .padding(.horizontal, Spacing.xl)
             
             Spacer()
         }
@@ -26,6 +35,150 @@ struct IdleSessionView: View {
             insertion: .move(edge: .leading),
             removal: .move(edge: .trailing)
         ))
+    }
+}
+
+// MARK: - 行星系统组件
+struct PlanetarySystem: View {
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    private let dataManager = DataManager.shared
+    
+    var body: some View {
+        ZStack {
+            ForEach(Array(groupedSessions.enumerated()), id: \.offset) { orbitIndex, group in
+                OrbitView(
+                    sessions: group.sessions,
+                    orbitRadius: getOrbitRadius(for: orbitIndex),
+                    orbitIndex: orbitIndex
+                )
+            }
+        }
+    }
+    
+    // 获取当前的TimePlan项目名称
+    private var currentPlanProjects: Set<String> {
+        let currentPlans = dataManager.loadPlans()
+        return Set(currentPlans.map { $0.project })
+    }
+    
+    // 按项目名称分组sessions（过滤掉少于10秒的session，且仅显示与当前TimePlan相关的）
+    private var groupedSessions: [(projectName: String, sessions: [FocusSession])] {
+        let filteredSessions = sessionViewModel.sessions.filter { session in
+            session.duration >= 10 && currentPlanProjects.contains(session.projectName)
+        }
+        let grouped = Dictionary(grouping: filteredSessions) { $0.projectName }
+        return grouped.map { (projectName: $0.key, sessions: $0.value) }
+            .sorted { $0.projectName < $1.projectName }
+    }
+    
+    // 根据轨道索引计算轨道半径
+    private func getOrbitRadius(for index: Int) -> CGFloat {
+        let baseRadius: CGFloat = 140 // 基础半径，更接近按钮
+        let radiusIncrement: CGFloat = 25 // 每条轨道的半径增量，更紧凑
+        return baseRadius + CGFloat(index) * radiusIncrement
+    }
+}
+
+// MARK: - 单个轨道视图
+struct OrbitView: View {
+    let sessions: [FocusSession]
+    let orbitRadius: CGFloat
+    let orbitIndex: Int
+    
+    @State private var rotationAngle: Double = 0
+    @State private var initialOffset: Double = 0
+    private let dataManager = DataManager.shared
+    
+    var body: some View {
+        ZStack {
+            ForEach(Array(sessions.enumerated()), id: \.element.id) { sessionIndex, session in
+                PlanetView(session: session, orbitRadius: orbitRadius, planThemeColor: orbitThemeColor)
+                    .rotationEffect(.degrees(rotationAngle + initialOffset + getSessionOffset(for: sessionIndex)))
+            }
+        }
+        .onAppear {
+            // 为每个轨道设置随机的初始偏移
+            initialOffset = Double.random(in: 0...360)
+            startOrbiting()
+        }
+    }
+    
+    // 获取当前轨道项目对应的计划主题颜色
+    private var orbitThemeColor: String {
+        guard let firstSession = sessions.first else { return "#00CE4A" }
+        let plans = dataManager.loadPlans()
+        if let plan = plans.first(where: { $0.project == firstSession.projectName }) {
+            return plan.themeColor
+        }
+        return firstSession.themeColor
+    }
+    
+    private func startOrbiting() {
+        // 为每个轨道设置不同的公转周期（8-25秒，速度更快）
+        let period = Double.random(in: 8...25)
+        
+        withAnimation(.linear(duration: period).repeatForever(autoreverses: false)) {
+            rotationAngle = 360
+        }
+    }
+    
+    // 计算同一轨道上不同session的初始位置偏移（紧凑排列）
+    private func getSessionOffset(for index: Int) -> Double {
+        // 计算每个小球的角度间隔，基于小球大小
+        let planetSize: CGFloat = 15 // 平均小球大小
+        let angularSpacing = Double((planetSize + 4) / orbitRadius * 180 / .pi) // 转换为角度，4是间隙
+        return Double(index) * angularSpacing
+    }
+}
+
+// MARK: - 行星视图
+struct PlanetView: View {
+    let session: FocusSession
+    let orbitRadius: CGFloat
+    let planThemeColor: String
+    
+    var body: some View {
+        Circle()
+            .fill(Color(hex: planThemeColor))
+            .frame(width: planetSize, height: planetSize)
+            .shadow(color: Color(hex: planThemeColor).opacity(0.6), radius: 4, x: 0, y: 2)
+            .overlay(
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.3),
+                                Color.clear
+                            ]),
+                            center: UnitPoint(x: 0.3, y: 0.3),
+                            startRadius: 0,
+                            endRadius: planetSize/2
+                        )
+                    )
+            )
+            .offset(x: orbitRadius, y: 0)
+    }
+    
+    // 根据session持续时间计算行星大小
+    private var planetSize: CGFloat {
+        let minSize: CGFloat = 4
+        let mediumSize: CGFloat = 16
+        let maxSize: CGFloat = 24
+        let duration = session.duration
+        
+        // 分段计算行星大小
+        if duration <= 300 { // 5分钟以内，最小尺寸
+            return minSize
+        } else if duration <= 2700 { // 5-45分钟，匀速增长
+            let progress = (duration - 300) / (2700 - 300) // 0-1之间
+            return minSize + (mediumSize - minSize) * CGFloat(progress)
+        } else { // 45分钟-3小时，增速下降
+            let progress = (duration - 2700) / (6300 - 2700) // 0-1之间
+            let normalizedProgress = min(progress, 1.0)
+            // 使用平方根函数让增长速度下降
+            let slowedProgress = sqrt(normalizedProgress)
+            return mediumSize + (maxSize - mediumSize) * CGFloat(slowedProgress)
+        }
     }
 }
 
@@ -182,4 +335,5 @@ extension NSHapticFeedbackManager {
 
 #Preview {
     IdleSessionView(onStartSession: {})
+        .environmentObject(SessionViewModel())
 }

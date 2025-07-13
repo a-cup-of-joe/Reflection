@@ -126,8 +126,12 @@ struct BreathingCircle: View {
             opacity = 0.15
         }
         
-        // 阶段2: 7秒静止
-        DispatchQueue.main.asyncAfter(deadline: .now() + 11) {
+        // 阶段2: 6秒静止期间的轻微波动
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            startSubtleFluctuation()
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
             // 阶段3: 8秒匀速缩回到小圆形
             withAnimation(.linear(duration: 8)) {
                 scale = 0.3
@@ -135,9 +139,37 @@ struct BreathingCircle: View {
             }
         }
         
-        // 19秒后开始下一个周期
-        DispatchQueue.main.asyncAfter(deadline: .now() + 19) {
+        // 18秒后开始下一个周期
+        DispatchQueue.main.asyncAfter(deadline: .now() + 18) {
             performBreathingCycle()
+        }
+    }
+    
+    private func startSubtleFluctuation() {
+        // 在6秒内进行轻微的呼吸循环：1秒缩小 + 1秒放大 = 2秒一个周期
+        // 6秒内刚好可以完成3个周期 (3 * 2 = 6秒)
+        let cycleCount = 3
+        let cycleDuration = 2.0
+        
+        for i in 0..<cycleCount {
+            let startTime = Double(i) * cycleDuration
+            
+            // 每个周期：1秒缩小，1秒放大
+            DispatchQueue.main.asyncAfter(deadline: .now() + startTime) {
+                // 1秒缩小到0.95
+                withAnimation(.easeInOut(duration: 1.0)) {
+                    scale = 0.95
+                    opacity = 0.17
+                }
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + startTime + 1.0) {
+                // 1秒放大回到1.0
+                withAnimation(.easeInOut(duration: 1.0)) {
+                    scale = 1.0
+                    opacity = 0.15
+                }
+            }
         }
     }
 }
