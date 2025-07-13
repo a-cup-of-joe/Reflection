@@ -23,8 +23,6 @@ struct DragState {
     }
 }
 
-
-
 struct PlanView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
     @State private var showingAddPlan = false
@@ -291,20 +289,14 @@ struct DraggableTimeBar: View {
                     let finalTargetIndex = calculateTargetIndex(from: value.translation.height)
                     let threshold = itemHeight * 0.3
                     
-                    // 只有拖拽距离足够大且目标位置不同时才移动
                     if abs(value.translation.height) > threshold && finalTargetIndex != index {
                         let originalIndex = index
-                        print("Moving from \(originalIndex) to \(finalTargetIndex)")
-                        
-                        // 🔧 立即设置目标位置，避免与 onChanged 冲突
-                        let targetOffset = CGFloat(finalTargetIndex - originalIndex) * itemHeight
-                        dragState.dragOffset = CGSize(width: 0, height: targetOffset)
                         
                         onMove(originalIndex, finalTargetIndex)
                         dragState.draggedIndex = finalTargetIndex
-                        print("Will move after animation, set dragOffset to: \(dragState.dragOffset)")
+                        let targetOffset = dragState.dragOffset.height - CGFloat(finalTargetIndex - originalIndex) * itemHeight
+                        dragState.dragOffset = CGSize(width: 0, height: targetOffset)
                     }
-                    
                     endDragging()
                 }
         )
@@ -317,17 +309,13 @@ struct DraggableTimeBar: View {
     }
     
     private func endDragging() {
-        // 🔧 不在这里重置 dragOffset，让动画自然完成
-        
-        // 先设置 isDragging = false，让所有 Item 的 onChange 监听器触发
         dragState.isDragging = false
-        
-        // 🔧 延长延迟时间，确保动画完成后再重置状态
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) {
-            dragState.reset()  // 使用 reset() 确保完全重置
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            dragState.reset()
         }
     }
 }
+
 #Preview {
     PlanView()
         .environmentObject(PlanViewModel())
