@@ -13,11 +13,13 @@ struct DragState {
     var draggedIndex: Int?
     var targetIndex: Int?
     var isDragging: Bool = false
+    var dragOffset: CGSize = .zero
     
     mutating func reset() {
         draggedIndex = nil
         targetIndex = nil
         isDragging = false
+        dragOffset = .zero
     }
 }
 
@@ -44,11 +46,9 @@ struct PlanView: View {
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
-                        ForEach(planViewModel.plans.indices, id: \.self) { index in
-                            let plan = planViewModel.plans[index]
+                        ForEach(planViewModel.plans, id: \.id) { plan in
                             DraggableTimeBar(
                                 plan: plan,
-                                index: index,
                                 totalItems: planViewModel.plans.count,
                                 dragState: $dragState,
                                 onTap: { selectedPlan = plan },
@@ -213,17 +213,19 @@ struct TimeBarView: View {
 // MARK: - DraggableTimeBar
 struct DraggableTimeBar: View {
     let plan: PlanItem
-    let index: Int
+    // var index: Int
     let totalItems: Int
+    @EnvironmentObject var planViewModel: PlanViewModel
     @Binding var dragState: DragState
     let onTap: () -> Void
     let onMove: (Int, Int) -> Void
     
-    @State private var dragOffset: CGSize = .zero
-    @State private var isDragging = false
-    
     private let itemHeight: CGFloat = 44 + 16 // TimeBar高度 + spacing
     
+    // index改造为PlanItem的索引
+    var index: Int {
+        planViewModel.indexOfPlan(withId: plan.id) ?? 0
+    }
     // 计算当前元素是否应该移动让位
     private var shouldShift: Bool {
         guard let draggedIndex = dragState.draggedIndex,
@@ -262,26 +264,26 @@ struct DraggableTimeBar: View {
     
     var body: some View {
         TimeBarView(plan: plan, onTap: { 
-            if !isDragging { onTap() } 
+            if dragState.draggedIndex != index { onTap() } 
         })
-        .offset(y: dragState.draggedIndex == index ? dragOffset.height : shiftOffset)
-        .scaleEffect(isDragging ? 1.05 : 1.0)
-        .zIndex(isDragging ? 1000 : 0)
+        .offset(y: dragState.draggedIndex == index ? dragState.dragOffset.height : shiftOffset)
+        .scaleEffect(dragState.draggedIndex == index ? 1.05 : 1.0)
+        .zIndex(dragState.draggedIndex == index ? 1000 : 0)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: shiftOffset)
-        .animation(.easeInOut(duration: 0.2), value: isDragging)
+        .animation(.easeInOut(duration: 0.2), value: dragState.draggedIndex == index)
+        // 监听拖拽状态变化
         .gesture(
             DragGesture(coordinateSpace: .local)
                 .onChanged { value in
-                    if !isDragging {
+                    if dragState.draggedIndex != index {
                         startDragging()
                     }
                     
-                    dragOffset = value.translation
+                    dragState.dragOffset = value.translation
                     
                     // 实时计算目标位置
                     let newTargetIndex = calculateTargetIndex(from: value.translation.height)
                     if newTargetIndex != dragState.targetIndex {
-                        print("📍 [Index \(index)] Target changed from \(dragState.targetIndex ?? -1) to \(newTargetIndex)")
                         dragState.targetIndex = newTargetIndex
                     }
                 }
@@ -291,7 +293,16 @@ struct DraggableTimeBar: View {
                     
                     // 只有拖拽距离足够大且目标位置不同时才移动
                     if abs(value.translation.height) > threshold && finalTargetIndex != index {
-                        onMove(index, finalTargetIndex)
+                        let originalIndex = index
+                        print("Moving from \(originalIndex) to \(finalTargetIndex)")
+                        
+                        // 🔧 立即设置目标位置，避免与 onChanged 冲突
+                        let targetOffset = CGFloat(finalTargetIndex - originalIndex) * itemHeight
+                        dragState.dragOffset = CGSize(width: 0, height: targetOffset)
+                        
+                        onMove(originalIndex, finalTargetIndex)
+                        dragState.draggedIndex = finalTargetIndex
+                        print("Will move after animation, set dragOffset to: \(dragState.dragOffset)")
                     }
                     
                     endDragging()
@@ -300,23 +311,23 @@ struct DraggableTimeBar: View {
     }
     
     private func startDragging() {
-        isDragging = true
         dragState.isDragging = true
         dragState.draggedIndex = index
         dragState.targetIndex = index
     }
     
     private func endDragging() {
-        isDragging = false
-        dragOffset = .zero
+        // 🔧 不在这里重置 dragOffset，让动画自然完成
         
-        // 短暂延迟后重置状态，让动画完成
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            dragState.reset()
+        // 先设置 isDragging = false，让所有 Item 的 onChange 监听器触发
+        dragState.isDragging = false
+        
+        // 🔧 延长延迟时间，确保动画完成后再重置状态
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.11) {
+            dragState.reset()  // 使用 reset() 确保完全重置
         }
     }
 }
-
 #Preview {
     PlanView()
         .environmentObject(PlanViewModel())

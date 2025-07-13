@@ -126,6 +126,10 @@ final class PlanViewModel: ObservableObject {
         plans.move(fromOffsets: IndexSet([fromIndex]), toOffset: toIndex > fromIndex ? toIndex + 1 : toIndex)
         savePlans()
     }
+
+    func indexOfPlan(withId id: UUID) -> Int? {
+        return plans.firstIndex(where: { $0.id == id })
+    }
     
     // MARK: - Private Helper Methods
     private func loadPlans() {
