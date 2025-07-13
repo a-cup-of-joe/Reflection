@@ -40,90 +40,10 @@ struct BigCircleStartButton: View {
     @State private var rippleScale: CGFloat = 1.0
     @State private var rippleOpacity = 0.0
     
-    // 行星轨道动画
-    @State private var planet1Angle: Double = 0
-    @State private var planet2Angle: Double = 120
-    @State private var planet3Angle: Double = 240
-    @State private var orbitLineAngle: Double = 0
-    
     private let buttonSize: CGFloat = 240  // 增大按钮尺寸
-    private let orbitRadius1: CGFloat = 140  // 第一个轨道半径
-    private let orbitRadius2: CGFloat = 160  // 第二个轨道半径
-    private let orbitRadius3: CGFloat = 180  // 第三个轨道半径
-    
-    // 获取今天的任务颜色
-    private var todayTaskColors: [Color] {
-        let today = Calendar.current.startOfDay(for: Date())
-        let todaySessions = sessionViewModel.sessions.filter { session in
-            Calendar.current.isDate(session.startTime, inSameDayAs: today)
-        }
-        
-        let colors = todaySessions.prefix(3).map { $0.themeColorSwiftUI }
-        
-        // 如果没有任务，使用默认的渐变色
-        if colors.isEmpty {
-            return [Color.primaryGreen, Color.blue, Color.purple]
-        }
-        
-        // 确保至少有3个颜色（重复使用已有颜色）
-        var resultColors = Array(colors)
-        while resultColors.count < 3 {
-            resultColors.append(contentsOf: colors)
-        }
-        return Array(resultColors.prefix(3))
-    }
     
     var body: some View {
         ZStack {
-            // 外层脉冲光环
-            Circle()
-                .stroke(Color.primaryGreen.opacity(0.2), lineWidth: 2)
-                .frame(width: buttonSize + 60, height: buttonSize + 60)
-                .scaleEffect(isPulsing ? 1.1 : 1.0)
-                .opacity(isPulsing ? 0.3 : 0.7)
-                .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: isPulsing)
-            
-            // 轨道线条（彩色虚线）
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .stroke(
-                        todayTaskColors[index].opacity(0.4),
-                        style: StrokeStyle(lineWidth: 1.5, dash: [8, 4])
-                    )
-                    .frame(width: [orbitRadius1, orbitRadius2, orbitRadius3][index] * 2, 
-                           height: [orbitRadius1, orbitRadius2, orbitRadius3][index] * 2)
-                    .rotationEffect(.degrees(orbitLineAngle + Double(index * 30)))
-                    .animation(.linear(duration: 20 + Double(index * 5)).repeatForever(autoreverses: false), value: orbitLineAngle)
-            }
-            
-            // 行星小球
-            PlanetView(
-                color: todayTaskColors[0],
-                angle: planet1Angle,
-                radius: orbitRadius1,
-                size: 12
-            )
-            
-            PlanetView(
-                color: todayTaskColors[1],
-                angle: planet2Angle,
-                radius: orbitRadius2,
-                size: 10
-            )
-            
-            PlanetView(
-                color: todayTaskColors[2],
-                angle: planet3Angle,
-                radius: orbitRadius3,
-                size: 8
-            )
-            
-            // 点击涟漪效果
-            Circle()
-                .stroke(Color.primaryGreen.opacity(0.4), lineWidth: 3)
-                .frame(width: buttonSize, height: buttonSize)
-                .scaleEffect(rippleScale)
-                .opacity(rippleOpacity)
             
             // 主按钮
             Button(action: {
@@ -248,61 +168,7 @@ struct BigCircleStartButton: View {
             withAnimation(.linear(duration: 8).repeatForever(autoreverses: false)) {
                 rotationAngle = 360
             }
-            
-            // 行星公转动画
-            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
-                planet1Angle = 360
-            }
-            
-            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
-                planet2Angle = 360 + 120
-            }
-            
-            withAnimation(.linear(duration: 24).repeatForever(autoreverses: false)) {
-                planet3Angle = 360 + 240
-            }
-            
-            // 轨道线条旋转
-            withAnimation(.linear(duration: 30).repeatForever(autoreverses: false)) {
-                orbitLineAngle = 360
-            }
         }
-    }
-}
-
-// MARK: - 行星小球视图
-struct PlanetView: View {
-    let color: Color
-    let angle: Double
-    let radius: CGFloat
-    let size: CGFloat
-    
-    var body: some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    gradient: Gradient(colors: [
-                        color.opacity(0.9),
-                        color,
-                        color.opacity(0.7)
-                    ]),
-                    center: .center,
-                    startRadius: 0,
-                    endRadius: size/2
-                )
-            )
-            .frame(width: size, height: size)
-            .shadow(color: color.opacity(0.6), radius: 4, x: 0, y: 2)
-            .overlay(
-                Circle()
-                    .fill(Color.white.opacity(0.3))
-                    .frame(width: size * 0.4, height: size * 0.4)
-                    .offset(x: -size * 0.15, y: -size * 0.15)
-            )
-            .offset(
-                x: cos(angle * .pi / 180) * radius,
-                y: sin(angle * .pi / 180) * radius
-            )
     }
 }
 

@@ -340,14 +340,6 @@ struct TaskCustomizationArea: View {
                                 .background(Color.clear)
                                 .font(.body)
                                 .scrollContentBackground(.hidden)
-                            
-                            if taskDescription.isEmpty {
-                                Text("描述你要做什么...")
-                                    .foregroundColor(.secondaryGray)
-                                    .padding(.horizontal, Spacing.sm + 4)
-                                    .padding(.vertical, Spacing.sm + 8)
-                                    .allowsHitTesting(false)
-                            }
                         }
                     }
                     
@@ -399,7 +391,7 @@ struct TaskCustomizationArea: View {
                     
                     // 预期小目标 - 改为更大的输入框
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("预期小目标")
+                        Text("预期目标")
                             .font(.headline)
                             .foregroundColor(.primary)
                         
@@ -420,13 +412,6 @@ struct TaskCustomizationArea: View {
                                         .font(.body)
                                         .scrollContentBackground(.hidden)
                                     
-                                    if goals[index].isEmpty {
-                                        Text("目标 \(index + 1)")
-                                            .foregroundColor(.secondaryGray)
-                                            .padding(.horizontal, Spacing.sm + 4)
-                                            .padding(.vertical, Spacing.sm + 8)
-                                            .allowsHitTesting(false)
-                                    }
                                 }
                                 
                                 if goals.count > 1 {

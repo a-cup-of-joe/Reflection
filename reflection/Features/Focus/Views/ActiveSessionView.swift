@@ -17,7 +17,9 @@ struct ActiveSessionView: View {
             // 使用温柔的莫兰迪色系背景色
             Color.getGentleBackgroundColor(for: currentSession.themeColor)
                 .ignoresSafeArea(.all)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            // 呼吸球背景
+            BreathingCircle(themeColor: currentSession.themeColor)
             
             VStack(spacing: Spacing.xxl * 2) {
                 Spacer()
@@ -97,6 +99,49 @@ struct ActiveSessionView: View {
     }
 }
 
+// MARK: - 呼吸球组件
+struct BreathingCircle: View {
+    let themeColor: String
+    @State private var scale: CGFloat = 0.3
+    @State private var opacity: Double = 0.3
+    
+    var body: some View {
+        Circle()
+            .fill(Color.white.opacity(opacity))
+            .frame(width: 300, height: 300)
+            .scaleEffect(scale)
+            .onAppear {
+                startBreathingAnimation()
+            }
+    }
+    
+    private func startBreathingAnimation() {
+        performBreathingCycle()
+    }
+    
+    private func performBreathingCycle() {
+        // 阶段1: 4秒膨胀到最大
+        withAnimation(.easeInOut(duration: 4)) {
+            scale = 1.0
+            opacity = 0.15
+        }
+        
+        // 阶段2: 7秒静止
+        DispatchQueue.main.asyncAfter(deadline: .now() + 11) {
+            // 阶段3: 8秒匀速缩回到小圆形
+            withAnimation(.linear(duration: 8)) {
+                scale = 0.3
+                opacity = 0.3
+            }
+        }
+        
+        // 19秒后开始下一个周期
+        DispatchQueue.main.asyncAfter(deadline: .now() + 19) {
+            performBreathingCycle()
+        }
+    }
+}
+
 // MARK: - 会话控制按钮组件
 struct SessionControlButton: View {
     let iconName: String
@@ -112,7 +157,7 @@ struct SessionControlButton: View {
                     Circle()
                         .fill(Color.white.opacity(0.2))
                 )
-                .frame(width: 80, height: 80)
+                .frame(width: 120, height: 120)
             
             VStack(spacing: 4) {
                 Image(systemName: iconName)

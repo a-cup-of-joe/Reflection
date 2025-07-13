@@ -13,7 +13,7 @@ struct ContentView: View {
     private enum Constants {
         static let sidebarWidth: CGFloat = 64
         static let sidebarPadding: CGFloat = 12
-        static let sidebarHideThreshold: CGFloat = 600
+        static let sidebarHideThreshold: CGFloat = 450
         static let windowControlButtonHeight: CGFloat = 32
     }
     
