@@ -17,7 +17,7 @@ struct reflectionApp: App {
                 .frame(minWidth: 450, maxWidth: .infinity, minHeight: 400, maxHeight: .infinity)
         }
         .windowResizability(.contentSize)
-        .defaultSize(width: 1000, height: 700)
+        .defaultSize(width: 500, height: 700)
         .windowStyle(.hiddenTitleBar)
     }
 }

@@ -10,7 +10,7 @@ import SwiftUI
 
 // MARK: - FocusSession Model
 struct FocusSession: Identifiable, Codable, Equatable {
-    let id = UUID()
+    let id: UUID
     var projectName: String
     var taskDescription: String
     var startTime: Date
@@ -18,6 +18,7 @@ struct FocusSession: Identifiable, Codable, Equatable {
     var themeColor: String
     
     init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A") {
+        self.id = UUID()
         self.projectName = projectName
         self.taskDescription = taskDescription
         self.startTime = startTime
