@@ -50,6 +50,7 @@ final class SessionViewModel: ObservableObject {
     @Published var currentSession: FocusSession?
     @Published var sessions: [FocusSession] = []
     @Published var elapsedTime: TimeInterval = 0
+    @Published var isPaused: Bool = false
     
     private var timer: Timer?
     private let dataManager = DataManager.shared
@@ -79,6 +80,19 @@ final class SessionViewModel: ObservableObject {
         
         currentSession = newSession
         elapsedTime = 0
+        isPaused = false
+        startTimer()
+    }
+    
+    func pauseSession() {
+        guard currentSession != nil, !isPaused else { return }
+        isPaused = true
+        stopTimer()
+    }
+    
+    func resumeSession() {
+        guard currentSession != nil, isPaused else { return }
+        isPaused = false
         startTimer()
     }
     
@@ -91,6 +105,7 @@ final class SessionViewModel: ObservableObject {
         updatePlanActualTime(for: session)
         
         currentSession = nil
+        isPaused = false
         stopTimer()
         saveSessions()
     }

@@ -1,4 +1,33 @@
+//
+//  IdleSessionView.swift
+//  reflection
+//
+//  Created by linan on 2025/7/13.
+//
+
 import SwiftUI
+
+struct IdleSessionView: View {
+    let onStartSession: () -> Void
+    
+    var body: some View {
+        VStack {
+            Spacer()
+            BigCircleStartButton {
+                onStartSession()
+            }
+            .padding(.horizontal, Spacing.xl)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.appBackground)
+        .transition(.asymmetric(
+            insertion: .move(edge: .leading),
+            removal: .move(edge: .trailing)
+        ))
+    }
+}
 
 struct BigCircleStartButton: View {
     let onTap: () -> Void
@@ -283,4 +312,8 @@ extension NSHapticFeedbackManager {
         let impactFeedback = NSHapticFeedbackManager.defaultPerformer
         impactFeedback.perform(.alignment, performanceTime: .now)
     }
+}
+
+#Preview {
+    IdleSessionView(onStartSession: {})
 }

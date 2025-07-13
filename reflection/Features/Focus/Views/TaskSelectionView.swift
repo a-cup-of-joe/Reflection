@@ -1,4 +1,57 @@
+//
+//  TaskSelectionView.swift
+//  reflection
+//
+//  Created by linan on 2025/7/13.
+//
+
 import SwiftUI
+
+struct TaskSelectionView: View {
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    @EnvironmentObject var planViewModel: PlanViewModel
+    
+    @Binding var selectedPlan: PlanItem?
+    @Binding var customProject: String
+    @Binding var taskDescription: String
+    @Binding var expectedTime: String
+    @Binding var goals: [String]
+    
+    let onBack: () -> Void
+    let onStart: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            TimeBlocksList(
+                plans: planViewModel.plans.sorted { plan1, plan2 in
+                    let isCompleted1 = plan1.actualTime >= plan1.plannedTime
+                    let isCompleted2 = plan2.actualTime >= plan2.plannedTime
+                    if isCompleted1 != isCompleted2 {
+                        return !isCompleted1
+                    }
+                    return plan1.createdAt < plan2.createdAt
+                },
+                selectedPlan: $selectedPlan
+            )
+            .frame(width: 280)
+            
+            TaskCustomizationArea(
+                selectedPlan: selectedPlan,
+                customProject: $customProject,
+                taskDescription: $taskDescription,
+                expectedTime: $expectedTime,
+                goals: $goals,
+                onBack: onBack,
+                onStart: onStart
+            )
+        }
+        .background(Color.appBackground)
+        .transition(.asymmetric(
+            insertion: .move(edge: .trailing),
+            removal: .move(edge: .leading)
+        ))
+    }
+}
 
 // 左侧时间块列表
 struct TimeBlocksList: View {
@@ -447,4 +500,18 @@ struct TaskCustomizationArea: View {
     private func updateExpectedTimeString() {
         expectedTime = expectedMinutes.formattedAsTime()
     }
+}
+
+#Preview {
+    TaskSelectionView(
+        selectedPlan: .constant(nil),
+        customProject: .constant(""),
+        taskDescription: .constant(""),
+        expectedTime: .constant(""),
+        goals: .constant([""]),
+        onBack: {},
+        onStart: {}
+    )
+    .environmentObject(SessionViewModel())
+    .environmentObject(PlanViewModel())
 }

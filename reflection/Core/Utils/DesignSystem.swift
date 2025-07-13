@@ -38,6 +38,51 @@ extension Color {
         "#SILVER_SPECIAL" // 特殊银色
     ]
     
+    // MARK: - 红色主题色组合
+    static let primaryRed = Color(hex: "#FF4757")
+    static let secondaryRed = Color(hex: "#FF6B7A")
+    static let lightRed = Color(hex: "#FFE4E6")
+    
+    // MARK: - 红橙色主题色组合
+    static let primaryRedOrange = Color(hex: "#FF6B35")
+    static let secondaryRedOrange = Color(hex: "#FF8A5E")
+    static let lightRedOrange = Color(hex: "#FFE8E0")
+    
+    // MARK: - 橙色主题色组合
+    static let primaryOrange = Color(hex: "#FF9500")
+    static let secondaryOrange = Color(hex: "#FFB233")
+    static let lightOrange = Color(hex: "#FFF0D6")
+    
+    // MARK: - 金黄色主题色组合
+    static let primaryGold = Color(hex: "#FFD700")
+    static let secondaryGold = Color(hex: "#FFE333")
+    static let lightGold = Color(hex: "#FFF8CC")
+    
+    // MARK: - 绿色主题色组合（保持原有设计）
+    // static let primaryGreen = Color(hex: "#32CD32")
+    // static let secondaryGreen = Color(hex: "#5FD65F")
+    // static let lightGreen = Color(hex: "#E8F5E8")
+    
+    // MARK: - 青色主题色组合
+    static let primaryCyan = Color(hex: "#00CED1")
+    static let secondaryCyan = Color(hex: "#33D9DB")
+    static let lightCyan = Color(hex: "#CCF5F6")
+    
+    // MARK: - 蓝色主题色组合
+    static let primaryBlue = Color(hex: "#4169E1")
+    static let secondaryBlue = Color(hex: "#6A87E7")
+    static let lightBlue = Color(hex: "#E6EBFA")
+    
+    // MARK: - 蓝紫色主题色组合
+    static let primaryBlueViolet = Color(hex: "#8A2BE2")
+    static let secondaryBlueViolet = Color(hex: "#A055E8")
+    static let lightBlueViolet = Color(hex: "#F0E6FA")
+    
+    // MARK: - 紫色主题色组合
+    static let primaryPurple = Color(hex: "#DA70D6")
+    static let secondaryPurple = Color(hex: "#E393DE")
+    static let lightPurple = Color(hex: "#F8ECF7")
+    
     // 特殊金属材质渐变色
     static let goldGradient = LinearGradient(
         gradient: Gradient(colors: [
@@ -89,6 +134,85 @@ extension Color {
             return silverShadow
         default:
             return nil
+        }
+    }
+    
+    // MARK: - 主题色组合获取方法
+    
+    /// 根据主题色获取对应的三种色调组合
+    /// - Parameter themeColor: 主题色的十六进制字符串
+    /// - Returns: 包含主色、次色、浅色的元组
+    static func getThemeColorSet(for themeColor: String) -> (primary: Color, secondary: Color, light: Color) {
+        switch themeColor {
+        case "#FF4757": // 红色
+            return (primaryRed, secondaryRed, lightRed)
+        case "#FF6B35": // 红橙色
+            return (primaryRedOrange, secondaryRedOrange, lightRedOrange)
+        case "#FF9500": // 橙色
+            return (primaryOrange, secondaryOrange, lightOrange)
+        case "#FFD700": // 金黄色
+            return (primaryGold, secondaryGold, lightGold)
+        case "#32CD32": // 绿色
+            return (primaryGreen, secondaryGreen, lightGreen)
+        case "#00CED1": // 青色
+            return (primaryCyan, secondaryCyan, lightCyan)
+        case "#4169E1": // 蓝色
+            return (primaryBlue, secondaryBlue, lightBlue)
+        case "#8A2BE2": // 蓝紫色
+            return (primaryBlueViolet, secondaryBlueViolet, lightBlueViolet)
+        case "#DA70D6": // 紫色
+            return (primaryPurple, secondaryPurple, lightPurple)
+        case "#GOLD_SPECIAL": // 特殊金色
+            return (Color(hex: "#FFD700"), Color(hex: "#FFE333"), Color(hex: "#FFF8CC"))
+        case "#SILVER_SPECIAL": // 特殊银色
+            return (Color(hex: "#C0C0C0"), Color(hex: "#D3D3D3"), Color(hex: "#F0F0F0"))
+        default:
+            return (primaryGreen, secondaryGreen, lightGreen) // 默认绿色主题
+        }
+    }
+    
+    /// 获取主题色的主色调
+    static func getPrimaryColor(for themeColor: String) -> Color {
+        return getThemeColorSet(for: themeColor).primary
+    }
+    
+    /// 获取主题色的次色调
+    static func getSecondaryColor(for themeColor: String) -> Color {
+        return getThemeColorSet(for: themeColor).secondary
+    }
+    
+    /// 获取主题色的浅色调
+    static func getLightColor(for themeColor: String) -> Color {
+        return getThemeColorSet(for: themeColor).light
+    }
+    
+    /// 获取主题色的温柔背景色（用于ActiveSessionView）
+    static func getGentleBackgroundColor(for themeColor: String) -> Color {
+        switch themeColor {
+        case "#FF4757": // 红色
+            return gentleRedBackground
+        case "#FF6B35": // 红橙色
+            return gentleRedOrangeBackground
+        case "#FF9500": // 橙色
+            return gentleOrangeBackground
+        case "#FFD700": // 金黄色
+            return gentleGoldBackground
+        case "#32CD32": // 绿色
+            return gentleGreenBackground
+        case "#00CED1": // 青色
+            return gentleCyanBackground
+        case "#4169E1": // 蓝色
+            return gentleBlueBackground
+        case "#8A2BE2": // 蓝紫色
+            return gentleBlueVioletBackground
+        case "#DA70D6": // 紫色
+            return gentlePurpleBackground
+        case "#GOLD_SPECIAL": // 特殊金色
+            return gentleGoldSpecialBackground
+        case "#SILVER_SPECIAL": // 特殊银色
+            return gentleSilverSpecialBackground
+        default:
+            return gentleGreenBackground // 默认绿色主题
         }
     }
 }
@@ -336,4 +460,38 @@ struct CustomTextFieldStyle: TextFieldStyle {
                     .stroke(Color.borderGray, lineWidth: 1)
             )
     }
+}
+
+// MARK: - 温柔的莫兰迪色系背景色（用于ActiveSessionView）
+extension Color {
+    // 红色主题的温柔背景
+    static let gentleRedBackground = Color(hex: "#D4A5A5")
+    
+    // 红橙色主题的温柔背景
+    static let gentleRedOrangeBackground = Color(hex: "#D4B5A5")
+    
+    // 橙色主题的温柔背景
+    static let gentleOrangeBackground = Color(hex: "#D4C5A5")
+    
+    // 金黄色主题的温柔背景
+    static let gentleGoldBackground = Color(hex: "#D4D2A5")
+    
+    // 绿色主题的温柔背景
+    static let gentleGreenBackground = Color(hex: "#A5D4A5")
+    
+    // 青色主题的温柔背景
+    static let gentleCyanBackground = Color(hex: "#A5D4D2")
+    
+    // 蓝色主题的温柔背景
+    static let gentleBlueBackground = Color(hex: "#A5B5D4")
+    
+    // 蓝紫色主题的温柔背景
+    static let gentleBlueVioletBackground = Color(hex: "#B5A5D4")
+    
+    // 紫色主题的温柔背景
+    static let gentlePurpleBackground = Color(hex: "#C5A5D4")
+    
+    // 特殊金属色的温柔背景
+    static let gentleGoldSpecialBackground = Color(hex: "#D4D2A5")
+    static let gentleSilverSpecialBackground = Color(hex: "#C0C0C0")
 }
