@@ -70,7 +70,7 @@ struct TimeBlocksList: View {
             ScrollView {
                 LazyVStack(spacing: Spacing.md) {
                     ForEach(plans, id: \.id) { plan in
-                        TimeBlockCard(
+                        SelectableTimeBar(
                             plan: plan,
                             isSelected: selectedPlan?.id == plan.id,
                             onTap: {
@@ -93,124 +93,83 @@ struct TimeBlocksList: View {
     }
 }
 
-// 时间块卡片
-struct TimeBlockCard: View {
+// 可选择的时间条（复用PlanView样式，无拖拽、占满长度、有选中状态）
+struct SelectableTimeBar: View {
     let plan: PlanItem
     let isSelected: Bool
     let onTap: () -> Void
     
-    private var completionProgress: Double {
-        guard plan.plannedTime > 0 else { return 0 }
-        return min(plan.actualTime / plan.plannedTime, 1.0)
-    }
-    
-    private var isCompleted: Bool {
-        plan.actualTime >= plan.plannedTime
-    }
+    @State private var isHovered = false
     
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: Spacing.md) {
-                // 左侧彩色圆球 - 类似 Panel 1 的行星小球
-                ZStack {
-                    // 背景圆圈
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                gradient: Gradient(colors: [
-                                    plan.themeColorSwiftUI.opacity(0.9),
-                                    plan.themeColorSwiftUI,
-                                    plan.themeColorSwiftUI.opacity(0.7)
-                                ]),
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 16
-                            )
-                        )
-                        .frame(width: 32, height: 32)
-                        .shadow(color: plan.themeColorSwiftUI.opacity(0.6), radius: 4, x: 0, y: 2)
-                    
-                    // 高光效果
-                    Circle()
-                        .fill(Color.white.opacity(0.3))
-                        .frame(width: 12, height: 12)
-                        .offset(x: -4, y: -4)
-                    
-                    // 完成状态的进度环
-                    Circle()
-                        .trim(from: 0, to: completionProgress)
-                        .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                        .frame(width: 28, height: 28)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.3), value: completionProgress)
-                    
-                    // 完成状态图标
-                    if isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-                
-                // 项目信息
+            HStack {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text(plan.project)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                     
-                    // 时间信息
-                    HStack(spacing: Spacing.xs) {
-                        Text(plan.actualTime.formatted())
-                            .font(.caption)
-                            .foregroundColor(isCompleted ? .primaryGreen : .secondaryGray)
-                        
-                        Text("/")
-                            .font(.caption)
-                            .foregroundColor(.secondaryGray)
-                        
-                        Text(plan.plannedTime.formatted())
-                            .font(.caption)
-                            .foregroundColor(.secondaryGray)
-                        
-                        Spacer()
-                        
-                        // 完成百分比
-                        Text("\(Int(completionProgress * 100))%")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(plan.themeColorSwiftUI)
-                    }
+                    Text(plan.plannedTime.formatted())
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+                
+                Spacer()
+                
+                // 选中状态的标识符
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .padding(.trailing, Spacing.md)
                 }
             }
-            .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadius.medium)
-                    .fill(
-                        // 根据完成状态和选中状态调整背景
-                        isSelected 
-                            ? plan.themeColorSwiftUI.opacity(0.15)
-                            : (isCompleted 
-                                ? plan.themeColorSwiftUI.opacity(0.05)
-                                : Color.cardBackground)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadius.medium)
-                            .stroke(
-                                isSelected 
-                                    ? plan.themeColorSwiftUI 
-                                    : (isCompleted 
-                                        ? plan.themeColorSwiftUI.opacity(0.3)
-                                        : Color.borderGray), 
-                                lineWidth: isSelected ? 2 : 1
-                            )
-                    )
-            )
-            .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.easeInOut(duration: 0.2), value: isSelected)
+            .frame(height: 44)
+            .background(createBackground())
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isHovered)
+            .onHover { isHovered = $0 }
         }
         .buttonStyle(PlainButtonStyle())
+    }
+    
+    @ViewBuilder
+    private func createBackground() -> some View {
+        if plan.isSpecialMaterial {
+            RoundedRectangle(cornerRadius: CornerRadius.small)
+                .fill(plan.specialMaterialGradient!)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.6),
+                                    Color.black.opacity(0.2)
+                                ]),
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                )
+                .shadow(color: plan.specialMaterialShadow!, radius: isHovered ? 6 : 3, x: 0, y: 2)
+                .shadow(color: Color.black.opacity(0.1), radius: isHovered ? 8 : 4, x: 0, y: 4)
+        } else {
+            RoundedRectangle(cornerRadius: CornerRadius.small)
+                .fill(plan.themeColorSwiftUI)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                        .stroke(
+                            isSelected ? Color.white : Color.clear,
+                            lineWidth: 2
+                        )
+                )
+                .shadow(color: plan.themeColorSwiftUI.opacity(0.3), radius: isHovered ? 4 : 2, x: 0, y: 2)
+        }
     }
 }
 
@@ -268,7 +227,16 @@ struct TaskCustomizationArea: View {
                                 .foregroundColor(.primary)
                             
                             TextField("输入项目名称", text: $customProject)
-                                .textFieldStyle(CustomTextFieldStyle())
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(.body)
+                                .padding(.horizontal, Spacing.md)
+                                .padding(.vertical, Spacing.sm)
+                                .background(Color.cardBackground)
+                                .cornerRadius(CornerRadius.medium)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                        .stroke(Color.borderGray, lineWidth: 1)
+                                )
                         }
                     } else {
                         VStack(alignment: .leading, spacing: Spacing.md) {
@@ -343,50 +311,13 @@ struct TaskCustomizationArea: View {
                         }
                     }
                     
-                    // 预期时间 - 使用 PlanView 样式的时间选择器
+                    // 预期时间 - 复用PlanFormView的时间选择器
                     VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("预期时间")
                             .font(.headline)
                             .foregroundColor(.primary)
                         
-                        HStack(spacing: Spacing.lg) {
-                            HStack(spacing: Spacing.sm) {
-                                Button(action: {
-                                    adjustTime(-15)
-                                }) {
-                                    Image(systemName: "minus.circle.fill")
-                                        .foregroundColor(.secondaryGray)
-                                        .font(.system(size: 20))
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                
-                                Text(expectedMinutes.formattedAsTime())
-                                    .font(.system(size: 18, weight: .medium, design: .monospaced))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 80)
-                                
-                                Button(action: {
-                                    adjustTime(15)
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.secondaryGray)
-                                        .font(.system(size: 20))
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                            .padding(.horizontal, Spacing.lg)
-                            .padding(.vertical, Spacing.md)
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                    .fill(Color.cardBackground)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                            .stroke(Color.borderGray, lineWidth: 1)
-                                    )
-                            )
-                            
-                            Spacer()
-                        }
+                        PlanTimeAdjuster(totalMinutes: $expectedMinutes)
                     }
                     
                     // 预期小目标 - 改为更大的输入框
@@ -473,12 +404,9 @@ struct TaskCustomizationArea: View {
             // 初始化时间显示
             updateExpectedTimeString()
         }
-    }
-    
-    // 时间调整函数
-    private func adjustTime(_ minutes: Int) {
-        expectedMinutes = max(15, expectedMinutes + minutes)
-        updateExpectedTimeString()
+        .onChange(of: expectedMinutes) { _, _ in
+            updateExpectedTimeString()
+        }
     }
     
     // 更新预期时间字符串
