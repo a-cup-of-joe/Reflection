@@ -112,4 +112,20 @@ struct TimeFormatters {
     static func formatDuration(_ duration: TimeInterval) -> String {
         return duration.formattedShort()
     }
+    
+    /// 格式化日期为中文格式
+    static func formatDateChinese(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M月d日"
+        formatter.locale = Locale(identifier: "zh_CN")
+        return formatter.string(from: date)
+    }
+    
+    /// 格式化星期为中文格式
+    static func formatWeekdayChinese(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        formatter.locale = Locale(identifier: "zh_CN")
+        return formatter.string(from: date)
+    }
 }

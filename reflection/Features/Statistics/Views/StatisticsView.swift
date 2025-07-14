@@ -10,8 +10,26 @@ import SwiftUI
 struct StatisticsView: View {
     @EnvironmentObject var statisticsViewModel: StatisticsViewModel
     @State private var animationProgress: Double = 0.0
+    @State private var showingHistoryView = false
     
     var body: some View {
+        ZStack {
+            if showingHistoryView {
+                HistoryStatisticsView(isPresented: $showingHistoryView)
+                    .environmentObject(statisticsViewModel)
+            } else {
+                mainStatisticsView
+            }
+        }
+        .onAppear {
+            statisticsViewModel.refreshStatistics()
+            withAnimation(.easeInOut(duration: 1.5)) {
+                animationProgress = 1.0
+            }
+        }
+    }
+    
+    private var mainStatisticsView: some View {
         ZStack {
             ScrollView {
                 VStack(spacing: Spacing.xl) {
@@ -50,19 +68,15 @@ struct StatisticsView: View {
             }
             .containerStyle()
             
-            // 刷新按钮
+            // 历史数据回溯按钮
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
                     Button(action: {
-                        statisticsViewModel.refreshStatistics()
-                        withAnimation(.easeInOut(duration: 1.5)) {
-                            animationProgress = 0.0
-                            animationProgress = 1.0
-                        }
+                        showingHistoryView = true
                     }) {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(.white)
                             .frame(width: 44, height: 44)
@@ -76,12 +90,184 @@ struct StatisticsView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - HistoryStatisticsView
+struct HistoryStatisticsView: View {
+    @EnvironmentObject var statisticsViewModel: StatisticsViewModel
+    @Binding var isPresented: Bool
+    @State private var animationProgress: Double = 0.0
+    @State private var selectedDateIndex: Int = 0
+    
+    var body: some View {
+        ZStack {
+            ScrollView {
+                VStack(spacing: Spacing.xl) {
+                    // 标题和退出按钮
+                    HStack {
+                        Button(action: {
+                            statisticsViewModel.exitHistoryMode()
+                            isPresented = false
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.accentColor)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Spacer()
+                        
+                        Text("历史数据")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        // 占位符保持标题居中
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(width: 24, height: 24)
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.xl)
+                    
+                    // 日期选择器
+                    if !statisticsViewModel.availableDates.isEmpty {
+                        VStack(spacing: Spacing.md) {
+                            Text("选择日期")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.sm) {
+                                    ForEach(Array(statisticsViewModel.availableDates.enumerated()), id: \.offset) { index, date in
+                                        DateSelectionButton(
+                                            date: date,
+                                            isSelected: index == selectedDateIndex,
+                                            action: {
+                                                selectedDateIndex = index
+                                                statisticsViewModel.selectDate(date)
+                                                withAnimation(.easeInOut(duration: 1.0)) {
+                                                    animationProgress = 0.0
+                                                    animationProgress = 1.0
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                                .padding(.horizontal, Spacing.lg)
+                            }
+                        }
+                        .padding(.horizontal, Spacing.lg)
+                    }
+                    
+                    // 统计面板
+                    VStack(spacing: Spacing.md) {
+                        ForEach(statisticsViewModel.statisticsItems) { item in
+                            StatisticsTimeBar(
+                                item: item,
+                                animationProgress: animationProgress
+                            )
+                        }
+                    }
+                    .padding(Spacing.lg)
+                    .background(Color.cardBackground)
+                    .cornerRadius(CornerRadius.large)
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                    .padding(.horizontal, Spacing.lg)
+                    
+                    if statisticsViewModel.statisticsItems.isEmpty {
+                        HistoryEmptyStateView()
+                    }
+                    
+                    Spacer(minLength: Spacing.xl)
+                }
+            }
+            .containerStyle()
+        }
         .onAppear {
-            statisticsViewModel.refreshStatistics()
+            statisticsViewModel.enterHistoryMode()
+            if !statisticsViewModel.availableDates.isEmpty {
+                selectedDateIndex = 0
+                statisticsViewModel.selectDate(statisticsViewModel.availableDates[0])
+            }
             withAnimation(.easeInOut(duration: 1.5)) {
                 animationProgress = 1.0
             }
         }
+        .onKeyPress(.escape) {
+            statisticsViewModel.exitHistoryMode()
+            isPresented = false
+            return .handled
+        }
+    }
+}
+
+// MARK: - DateSelectionButton
+struct DateSelectionButton: View {
+    let date: Date
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: Spacing.xs) {
+                Text(formatDate(date))
+                    .font(.caption)
+                    .foregroundColor(isSelected ? .white : .primary)
+                
+                Text(formatWeekday(date))
+                    .font(.caption2)
+                    .foregroundColor(isSelected ? .white.opacity(0.8) : .secondaryGray)
+            }
+            .padding(.vertical, Spacing.sm)
+            .padding(.horizontal, Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .fill(isSelected ? Color.accentColor : Color.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .stroke(Color.accentColor.opacity(0.3), lineWidth: isSelected ? 0 : 1)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: date)
+    }
+    
+    private func formatWeekday(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "E"
+        formatter.locale = Locale(identifier: "zh_CN")
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - HistoryEmptyStateView
+struct HistoryEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: Spacing.lg) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.system(size: 64))
+                .foregroundColor(.secondaryGray)
+            
+            Text("该日期暂无数据")
+                .font(.headline)
+                .foregroundColor(.secondaryGray)
+            
+            Text("请选择其他有数据的日期")
+                .font(.body)
+                .foregroundColor(.secondaryGray)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.vertical, Spacing.xxl)
     }
 }
 

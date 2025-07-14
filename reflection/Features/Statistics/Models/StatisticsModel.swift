@@ -48,20 +48,47 @@ final class StatisticsViewModel: ObservableObject {
     @Published var statisticsItems: [StatisticsItem] = []
     @Published var currentPlan: Plan?
     @Published var todaySessions: [FocusSession] = []
+    @Published var selectedDate: Date = Date()
+    @Published var isHistoryMode: Bool = false
+    @Published var availableDates: [Date] = []
     
     private let dataManager = DataManager.shared
     
     init() {
         loadCurrentPlan()
-        loadTodaySessions()
+        loadAvailableDates()
+        loadSessionsForDate(selectedDate)
         calculateStatistics()
     }
     
     // MARK: - Public Methods
     func refreshStatistics() {
         loadCurrentPlan()
-        loadTodaySessions()
+        loadAvailableDates()
+        loadSessionsForDate(selectedDate)
         calculateStatistics()
+    }
+    
+    func enterHistoryMode() {
+        isHistoryMode = true
+        loadAvailableDates()
+    }
+    
+    func exitHistoryMode() {
+        isHistoryMode = false
+        selectedDate = Date()
+        loadSessionsForDate(selectedDate)
+        calculateStatistics()
+    }
+    
+    func selectDate(_ date: Date) {
+        selectedDate = date
+        loadSessionsForDate(date)
+        calculateStatistics()
+    }
+    
+    var isToday: Bool {
+        Calendar.current.isDate(selectedDate, inSameDayAs: Date())
     }
     
     // MARK: - Private Methods
@@ -78,13 +105,23 @@ final class StatisticsViewModel: ObservableObject {
         }
     }
     
-    private func loadTodaySessions() {
+    private func loadAvailableDates() {
         let allSessions = dataManager.loadSessions()
-        let today = Date()
+        let calendar = Calendar.current
+        
+        let uniqueDates = Set(allSessions.map { session in
+            calendar.startOfDay(for: session.startTime)
+        })
+        
+        availableDates = Array(uniqueDates).sorted(by: >)
+    }
+    
+    private func loadSessionsForDate(_ date: Date) {
+        let allSessions = dataManager.loadSessions()
         let calendar = Calendar.current
         
         todaySessions = allSessions.filter { session in
-            calendar.isDate(session.startTime, inSameDayAs: today)
+            calendar.isDate(session.startTime, inSameDayAs: date)
         }
     }
     
