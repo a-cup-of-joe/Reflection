@@ -226,7 +226,7 @@ struct TaskCustomizationArea: View {
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             
-                            TextField("输入项目名称", text: $customProject)
+                            TextField("", text: $customProject)
                                 .textFieldStyle(PlainTextFieldStyle())
                                 .font(.body)
                                 .padding(.horizontal, Spacing.md)

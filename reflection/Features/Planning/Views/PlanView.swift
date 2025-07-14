@@ -29,6 +29,9 @@ struct PlanView: View {
     @State private var selectedPlan: PlanItem?
     @State private var dragState = DragState()
     @State private var showingPlanManager = false
+    @State private var isEditingTitle = false
+    @State private var editingTitle = ""
+    @FocusState private var isTitleFocused: Bool
     
     var body: some View {
         ZStack {
@@ -37,13 +40,39 @@ struct PlanView: View {
                     // 标题
                     HStack {
                         Spacer()
-                        Text(planViewModel.currentPlan?.name ?? "Time Planner")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                        
+                        if isEditingTitle {
+                            TextField("", text: $editingTitle)
+                                .textFieldStyle(PlainTextFieldStyle())
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                                .focused($isTitleFocused)
+                                .onSubmit {
+                                    saveTitleEdit()
+                                }
+                                .onAppear {
+                                    isTitleFocused = true
+                                }
+                        } else {
+                            Text(planViewModel.currentPlan?.name ?? "Time Planner")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                                .onTapGesture(count: 2) {
+                                    startTitleEditing()
+                                }
+                        }
+                        
                         Spacer()
                     }
                     .padding(.top, Spacing.xl)
+                    .onTapGesture {
+                        if isEditingTitle {
+                            saveTitleEdit()
+                        }
+                    }
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
@@ -106,6 +135,27 @@ struct PlanView: View {
             PlanManagerView()
                 .environmentObject(planViewModel)
         }
+        .onChange(of: isTitleFocused) { _, newValue in
+            if !newValue && isEditingTitle {
+                saveTitleEdit()
+            }
+        }
+    }
+    
+    // MARK: - Title Editing Methods
+    private func startTitleEditing() {
+        guard let currentPlan = planViewModel.currentPlan else { return }
+        editingTitle = currentPlan.name
+        isEditingTitle = true
+    }
+    
+    private func saveTitleEdit() {
+        let trimmedTitle = editingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTitle.isEmpty {
+            planViewModel.updatePlanName(trimmedTitle)
+        }
+        isEditingTitle = false
+        isTitleFocused = false
     }
 }
 

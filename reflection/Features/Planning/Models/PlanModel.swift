@@ -112,6 +112,16 @@ final class PlanViewModel: ObservableObject {
         dataManager.saveCurrentPlanId(plan.id)
     }
     
+    func updatePlanName(_ newName: String) {
+        guard var plan = currentPlan else { return }
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        plan.name = trimmedName
+        plan.updateLastModified()
+        updateCurrentPlan(plan)
+        savePlans()
+    }
+    
     func updatePlanName(_ planId: UUID, newName: String) {
         guard let index = plans.firstIndex(where: { $0.id == planId }) else { return }
         let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
