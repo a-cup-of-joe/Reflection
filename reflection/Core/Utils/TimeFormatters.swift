@@ -5,13 +5,6 @@
 //  Created by linan on 2025/7/9.
 //
 
-//
-//  TimeFormatters.swift
-//  reflection
-//
-//  Created by linan on 2025/7/9.
-//
-
 import Foundation
 
 // MARK: - TimeInterval Extensions
@@ -110,5 +103,13 @@ extension String {
         }
         
         return nil
+    }
+}
+
+// MARK: - TimeFormatters
+struct TimeFormatters {
+    /// 格式化时间长度为易读格式
+    static func formatDuration(_ duration: TimeInterval) -> String {
+        return duration.formattedShort()
     }
 }

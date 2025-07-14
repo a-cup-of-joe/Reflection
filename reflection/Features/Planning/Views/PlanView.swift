@@ -36,11 +36,11 @@ struct PlanView: View {
                 VStack(spacing: Spacing.xl) {
                     // 标题
                     HStack {
+                        Spacer()
                         Text(planViewModel.currentPlan?.name ?? "Time Planner")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
-                        
                         Spacer()
                     }
                     .padding(.top, Spacing.xl)
@@ -166,6 +166,10 @@ struct TimeBarView: View {
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
+                // 添加左侧间距使 TimeBars 向右偏移
+                Spacer()
+                    .frame(width: Spacing.md)
+                
                 // 主要内容区域 - 只有这部分可以被拖动
                 HStack {
                     VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -229,12 +233,12 @@ struct TimeBarView: View {
     
     private func calculateBarWidth(containerWidth: CGFloat) -> CGFloat {
         let safeWidth = max(containerWidth, 200)
-        let baseWidth = safeWidth * 0.1
-        let maxWidth = safeWidth * 0.7
+        let baseWidth = safeWidth * 0.2
+        let maxWidth = safeWidth * 0.85
         let totalHours = plan.plannedTime / 3600
         let logScale = log(1 + totalHours) / log(1 + 3) // 3 hours reference
         let proportionalWidth = baseWidth + (maxWidth - baseWidth) * logScale
-        return max(safeWidth * 0.1, min(proportionalWidth, maxWidth))
+        return max(baseWidth, min(proportionalWidth, maxWidth))
     }
 }
 

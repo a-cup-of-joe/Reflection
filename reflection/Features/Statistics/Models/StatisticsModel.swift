@@ -6,94 +6,118 @@
 //
 
 import Foundation
+import SwiftUI
 
-// MARK: - StatisticsData Model
-struct StatisticsData {
-    let totalPlannedTime: TimeInterval
-    let totalActualTime: TimeInterval
-    let totalSessions: Int
-    let averageSessionDuration: TimeInterval
-    let projectStats: [ProjectStatistics]
-    
-    /// 总体效率（实际时间 / 计划时间）
-    var efficiency: Double {
-        guard totalPlannedTime > 0 else { return 0 }
-        return totalActualTime / totalPlannedTime
-    }
-}
-
-// MARK: - ProjectStatistics Model
-struct ProjectStatistics: Identifiable {
-    let id = UUID()
-    let projectName: String
+// MARK: - StatisticsItem Model
+struct StatisticsItem: Identifiable {
+    let id: UUID
+    let project: String
     let plannedTime: TimeInterval
     let actualTime: TimeInterval
-    let sessionCount: Int
+    let themeColor: String
     
-    /// 项目效率
-    var efficiency: Double {
+    /// 完成度百分比 (可以超过 100%)
+    var completionPercentage: Double {
         guard plannedTime > 0 else { return 0 }
         return actualTime / plannedTime
     }
     
-    /// 时间差异
-    var timeDifference: TimeInterval {
-        actualTime - plannedTime
+    /// SwiftUI 颜色对象
+    var themeColorSwiftUI: Color {
+        Color(hex: themeColor)
+    }
+    
+    /// 是否为特殊材质
+    var isSpecialMaterial: Bool {
+        Color.isSpecialMaterial(themeColor)
+    }
+    
+    /// 特殊材质渐变
+    var specialMaterialGradient: LinearGradient? {
+        Color.getSpecialMaterialGradient(themeColor)
+    }
+    
+    /// 特殊材质阴影
+    var specialMaterialShadow: Color? {
+        Color.getSpecialMaterialShadow(themeColor)
     }
 }
 
 // MARK: - StatisticsViewModel
 final class StatisticsViewModel: ObservableObject {
-    @Published var statisticsData: StatisticsData?
+    @Published var statisticsItems: [StatisticsItem] = []
+    @Published var currentPlan: Plan?
+    @Published var todaySessions: [FocusSession] = []
     
     private let dataManager = DataManager.shared
     
     init() {
+        loadCurrentPlan()
+        loadTodaySessions()
         calculateStatistics()
     }
     
     // MARK: - Public Methods
     func refreshStatistics() {
+        loadCurrentPlan()
+        loadTodaySessions()
         calculateStatistics()
     }
     
     // MARK: - Private Methods
-    private func calculateStatistics() {
+    private func loadCurrentPlan() {
         let plans = dataManager.loadPlans()
-        let sessions = dataManager.loadSessions()
         
-        // 获取所有计划项目
-        let allPlanItems = plans.flatMap { $0.planItems }
-        
-        // 计算总体统计
-        let totalPlannedTime = allPlanItems.reduce(into: 0) { $0 += $1.plannedTime }
-        let totalActualTime = allPlanItems.reduce(into: 0) { $0 += $1.actualTime }
-        let totalSessions = sessions.count
-        
-        let averageSessionDuration = sessions.isEmpty ? 0 : 
-            sessions.reduce(into: 0) { $0 += $1.duration } / Double(sessions.count)
-        
-        // 计算项目统计
-        let projectStats = calculateProjectStatistics(plans: allPlanItems, sessions: sessions)
-        
-        statisticsData = StatisticsData(
-            totalPlannedTime: totalPlannedTime,
-            totalActualTime: totalActualTime,
-            totalSessions: totalSessions,
-            averageSessionDuration: averageSessionDuration,
-            projectStats: projectStats
-        )
-    }
-    
-    private func calculateProjectStatistics(plans: [PlanItem], sessions: [FocusSession]) -> [ProjectStatistics] {
-        plans.map { plan in
-            let projectSessions = sessions.filter { $0.projectName == plan.project }
-            return ProjectStatistics(
-                projectName: plan.project,
-                plannedTime: plan.plannedTime,
-                actualTime: plan.actualTime,
-                sessionCount: projectSessions.count
-            )
+        if let currentPlanId = dataManager.loadCurrentPlanId(),
+           let plan = plans.first(where: { $0.id == currentPlanId }) {
+            currentPlan = plan
+        } else if let firstPlan = plans.first {
+            currentPlan = firstPlan
+        } else {
+            currentPlan = nil
         }
     }
+    
+    private func loadTodaySessions() {
+        let allSessions = dataManager.loadSessions()
+        let today = Date()
+        let calendar = Calendar.current
+        
+        todaySessions = allSessions.filter { session in
+            calendar.isDate(session.startTime, inSameDayAs: today)
+        }
+    }
+    
+    private func calculateStatistics() {
+        guard let currentPlan = currentPlan else {
+            statisticsItems = []
+            return
+        }
+        
+        var tempStatisticsItems: [StatisticsItem] = []
+        
+        // 为每个计划项目计算实际时间
+        for planItem in currentPlan.planItems {
+            let projectSessions = todaySessions.filter { session in
+                session.projectName == planItem.project
+            }
+            
+            let totalActualTime = projectSessions.reduce(0) { total, session in
+                total + session.duration
+            }
+            
+            let statisticsItem = StatisticsItem(
+                id: planItem.id,
+                project: planItem.project,
+                plannedTime: planItem.plannedTime,
+                actualTime: totalActualTime,
+                themeColor: planItem.themeColor
+            )
+            
+            tempStatisticsItems.append(statisticsItem)
+        }
+        
+        statisticsItems = tempStatisticsItems
+    }
 }
+

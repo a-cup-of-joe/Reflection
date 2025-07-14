@@ -122,6 +122,18 @@ final class SessionViewModel: ObservableObject {
         timer = nil
     }
     
+    // MARK: - Settings Support Methods
+    func clearAllSessions() {
+        sessions.removeAll()
+        saveSessions()
+    }
+    
+    func updateSession(_ updatedSession: FocusSession) {
+        guard let index = sessions.firstIndex(where: { $0.id == updatedSession.id }) else { return }
+        sessions[index] = updatedSession
+        saveSessions()
+    }
+    
     private func updatePlanActualTime(for session: FocusSession) {
         var plans = dataManager.loadPlans()
         

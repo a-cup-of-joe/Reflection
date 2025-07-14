@@ -31,6 +31,7 @@ struct ContentView: View {
     @State private var selectedTab = TabIndex.planning
     @State private var windowSize: CGSize = .zero
     @State private var shouldHideSidebar = false
+    @State private var showingSettings = false
     
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -98,6 +99,10 @@ struct ContentView: View {
             navigationButtons
             
             Spacer()
+            
+            // 设置按钮
+            settingsButton
+                .padding(.bottom, Spacing.md)
         }
         .frame(width: Constants.sidebarWidth)
         .background(Color.white)
@@ -143,6 +148,36 @@ struct ContentView: View {
             ) {
                 selectedTab = TabIndex.statistics
             }
+        }
+    }
+    
+    private var settingsButton: some View {
+        Button(action: {
+            showingSettings = true
+        }) {
+            VStack(spacing: Spacing.xs) {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.secondaryGray)
+                    .frame(width: 28, height: 28)
+                
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 3, height: 3)
+            }
+            .padding(.vertical, Spacing.xs)
+            .padding(.horizontal, Spacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadius.small)
+                    .fill(Color.clear)
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+            // 可以添加悬停效果
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(sessionViewModel: sessionViewModel)
         }
     }
     
