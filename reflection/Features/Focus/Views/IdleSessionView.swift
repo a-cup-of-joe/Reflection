@@ -174,8 +174,11 @@ struct PlanetarySystem: View {
     
     // 获取当前的TimePlan项目名称
     private var currentPlanProjects: Set<String> {
-        let currentPlans = dataManager.loadPlans()
-        return Set(currentPlans.map { $0.project })
+        guard let currentPlanId = dataManager.loadCurrentPlanId(),
+              let currentPlan = dataManager.loadPlans().first(where: { $0.id == currentPlanId }) else {
+            return Set()
+        }
+        return Set(currentPlan.planItems.map { $0.project })
     }
     
     // 按项目名称分组sessions（过滤掉少于10秒的session，且仅显示与当前TimePlan相关的）
@@ -197,12 +200,13 @@ struct PlanetarySystem: View {
     
     // 获取当前轨道的主题颜色
     func getOrbitThemeColor(for session: FocusSession?) -> String {
-        guard let session = session else { return "#00CE4A" }
-        let plans = dataManager.loadPlans()
-        if let plan = plans.first(where: { $0.project == session.projectName }) {
-            return plan.themeColor
+        guard let session = session,
+              let currentPlanId = dataManager.loadCurrentPlanId(),
+              let currentPlan = dataManager.loadPlans().first(where: { $0.id == currentPlanId }),
+              let planItem = currentPlan.planItems.first(where: { $0.project == session.projectName }) else {
+            return session?.themeColor ?? "#00CE4A"
         }
-        return session.themeColor
+        return planItem.themeColor
     }
     
     // 计算角度间隔
@@ -389,12 +393,13 @@ struct OrbitView: View {
     
     // 获取当前轨道项目对应的计划主题颜色
     private var orbitThemeColor: String {
-        guard let firstSession = sessions.first else { return "#00CE4A" }
-        let plans = dataManager.loadPlans()
-        if let plan = plans.first(where: { $0.project == firstSession.projectName }) {
-            return plan.themeColor
+        guard let firstSession = sessions.first,
+              let currentPlanId = dataManager.loadCurrentPlanId(),
+              let currentPlan = dataManager.loadPlans().first(where: { $0.id == currentPlanId }),
+              let planItem = currentPlan.planItems.first(where: { $0.project == firstSession.projectName }) else {
+            return sessions.first?.themeColor ?? "#00CE4A"
         }
-        return firstSession.themeColor
+        return planItem.themeColor
     }
     
     private func startOrbiting() {

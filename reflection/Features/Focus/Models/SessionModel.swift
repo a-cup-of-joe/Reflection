@@ -125,10 +125,16 @@ final class SessionViewModel: ObservableObject {
     private func updatePlanActualTime(for session: FocusSession) {
         var plans = dataManager.loadPlans()
         
-        if let planIndex = plans.firstIndex(where: { $0.project == session.projectName }) {
-            plans[planIndex].actualTime += session.duration
-            dataManager.savePlans(plans)
+        // 只在当前计划中查找并更新匹配的项目
+        guard let currentPlanId = dataManager.loadCurrentPlanId(),
+              let currentPlanIndex = plans.firstIndex(where: { $0.id == currentPlanId }),
+              let planItemIndex = plans[currentPlanIndex].planItems.firstIndex(where: { $0.project == session.projectName }) else {
+            return
         }
+        
+        plans[currentPlanIndex].planItems[planItemIndex].actualTime += session.duration
+        plans[currentPlanIndex].updateLastModified()
+        dataManager.savePlans(plans)
     }
     
     private func loadSessions() {

@@ -23,7 +23,7 @@ struct TaskSelectionView: View {
     var body: some View {
         HStack(spacing: 0) {
             TimeBlocksList(
-                plans: planViewModel.plans.sorted { plan1, plan2 in
+                plans: planViewModel.currentPlanItems.sorted { plan1, plan2 in
                     let isCompleted1 = plan1.actualTime >= plan1.plannedTime
                     let isCompleted2 = plan2.actualTime >= plan2.plannedTime
                     if isCompleted1 != isCompleted2 {

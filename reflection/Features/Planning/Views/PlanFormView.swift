@@ -181,7 +181,7 @@ struct PlanFormView: View {
             return
         }
         
-        planViewModel.addPlan(
+        planViewModel.addPlanItem(
             project: projectName,
             plannedTime: TimeInterval(totalMinutes * 60),
             themeColor: selectedThemeColor
@@ -202,8 +202,8 @@ struct PlanFormView: View {
             return
         }
         
-        planViewModel.updatePlan(
-            planId: plan.id,
+        planViewModel.updatePlanItem(
+            planItemId: plan.id,
             project: projectName,
             plannedTime: TimeInterval(totalMinutes * 60),
             themeColor: selectedThemeColor
@@ -213,7 +213,7 @@ struct PlanFormView: View {
     
     private func deletePlan() {
         guard case .edit(let plan) = mode else { return }
-        planViewModel.deletePlan(planId: plan.id)
+        planViewModel.deletePlanItem(planItemId: plan.id)
         dismiss()
     }
     

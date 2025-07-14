@@ -62,16 +62,19 @@ final class StatisticsViewModel: ObservableObject {
         let plans = dataManager.loadPlans()
         let sessions = dataManager.loadSessions()
         
+        // 获取所有计划项目
+        let allPlanItems = plans.flatMap { $0.planItems }
+        
         // 计算总体统计
-        let totalPlannedTime = plans.reduce(0) { $0 + $1.plannedTime }
-        let totalActualTime = plans.reduce(0) { $0 + $1.actualTime }
+        let totalPlannedTime = allPlanItems.reduce(into: 0) { $0 += $1.plannedTime }
+        let totalActualTime = allPlanItems.reduce(into: 0) { $0 += $1.actualTime }
         let totalSessions = sessions.count
         
         let averageSessionDuration = sessions.isEmpty ? 0 : 
-            sessions.reduce(0) { $0 + $1.duration } / Double(sessions.count)
+            sessions.reduce(into: 0) { $0 += $1.duration } / Double(sessions.count)
         
         // 计算项目统计
-        let projectStats = calculateProjectStatistics(plans: plans, sessions: sessions)
+        let projectStats = calculateProjectStatistics(plans: allPlanItems, sessions: sessions)
         
         statisticsData = StatisticsData(
             totalPlannedTime: totalPlannedTime,

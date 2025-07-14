@@ -28,6 +28,7 @@ struct PlanView: View {
     @State private var showingAddPlan = false
     @State private var selectedPlan: PlanItem?
     @State private var dragState = DragState()
+    @State private var showingPlanManager = false
     
     var body: some View {
         ZStack {
@@ -35,28 +36,30 @@ struct PlanView: View {
                 VStack(spacing: Spacing.xl) {
                     // 标题
                     HStack {
-                        Text("Time Planner")
+                        Text(planViewModel.currentPlan?.name ?? "Time Planner")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
+                        
+                        Spacer()
                     }
                     .padding(.top, Spacing.xl)
                     
                     // 时间条列表
                     LazyVStack(spacing: Spacing.md) {
-                        ForEach(planViewModel.plans, id: \.id) { plan in
+                        ForEach(planViewModel.currentPlanItems, id: \.id) { plan in
                             DraggableTimeBar(
                                 plan: plan,
-                                totalItems: planViewModel.plans.count,
+                                totalItems: planViewModel.currentPlanItems.count,
                                 dragState: $dragState,
                                 onTap: { selectedPlan = plan },
-                                onMove: planViewModel.movePlan
+                                onMove: planViewModel.movePlanItem
                             )
                         }
                     }
                     .scrollDisabled(dragState.draggedIndex != nil)
                     
-                    if planViewModel.plans.isEmpty {
+                    if planViewModel.currentPlanItems.isEmpty {
                         EmptyStateView()
                     }
                     
@@ -65,14 +68,29 @@ struct PlanView: View {
             }
             .containerStyle()
                     
-            // 悬浮添加按钮
+            // 悬浮按钮组
             VStack {
                 Spacer()
                 HStack {
                     Spacer()
-                    FloatingActionButton { showingAddPlan = true }
-                        .padding(.trailing, Spacing.lg)
-                        .padding(.bottom, Spacing.lg)
+                    VStack(spacing: Spacing.md) {
+                        // 计划管理按钮
+                        FloatingActionButton(
+                            icon: "folder",
+                            backgroundColor: .secondary
+                        ) { 
+                            showingPlanManager = true 
+                        }
+                        
+                        // 添加任务按钮
+                        FloatingActionButton(
+                            icon: "plus"
+                        ) { 
+                            showingAddPlan = true 
+                        }
+                    }
+                    .padding(.trailing, Spacing.lg)
+                    .padding(.bottom, Spacing.lg)
                 }
             }
         }
@@ -82,6 +100,10 @@ struct PlanView: View {
         }
         .sheet(item: $selectedPlan) { plan in
             PlanFormView(mode: .edit(plan))
+                .environmentObject(planViewModel)
+        }
+        .sheet(isPresented: $showingPlanManager) {
+            PlanManagerView()
                 .environmentObject(planViewModel)
         }
     }
@@ -110,15 +132,23 @@ struct EmptyStateView: View {
 
 // MARK: - FloatingActionButton
 struct FloatingActionButton: View {
+    let icon: String
+    let backgroundColor: Color
     let action: () -> Void
+    
+    init(icon: String = "plus", backgroundColor: Color = .accentColor, action: @escaping () -> Void) {
+        self.icon = icon
+        self.backgroundColor = backgroundColor
+        self.action = action
+    }
     
     var body: some View {
         Button(action: action) {
-            Image(systemName: "plus")
+            Image(systemName: icon)
                 .font(.system(size: 20, weight: .medium))
                 .foregroundColor(.white)
                 .frame(width: 44, height: 44)
-                .background(Color.accentColor)
+                .background(backgroundColor)
                 .clipShape(Circle())
                 .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         }
@@ -222,7 +252,7 @@ struct DraggableTimeBar: View {
     
     // index改造为PlanItem的索引
     var index: Int {
-        planViewModel.indexOfPlan(withId: plan.id) ?? 0
+        planViewModel.indexOfPlanItem(withId: plan.id) ?? 0
     }
     // 计算当前元素是否应该移动让位
     private var shouldShift: Bool {

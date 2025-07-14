@@ -13,22 +13,35 @@ final class DataManager {
     
     private let plansKey = "saved_plans"
     private let sessionsKey = "saved_sessions"
+    private let currentPlanIdKey = "current_plan_id"
     
     private init() {}
     
     // MARK: - Plans Management
-    func savePlans(_ plans: [PlanItem]) {
+    func savePlans(_ plans: [Plan]) {
         if let encoded = try? JSONEncoder().encode(plans) {
             UserDefaults.standard.set(encoded, forKey: plansKey)
         }
     }
     
-    func loadPlans() -> [PlanItem] {
+    func loadPlans() -> [Plan] {
         guard let data = UserDefaults.standard.data(forKey: plansKey),
-              let decoded = try? JSONDecoder().decode([PlanItem].self, from: data) else {
+              let decoded = try? JSONDecoder().decode([Plan].self, from: data) else {
             return []
         }
         return decoded
+    }
+    
+    // MARK: - Current Plan Management
+    func saveCurrentPlanId(_ planId: UUID) {
+        UserDefaults.standard.set(planId.uuidString, forKey: currentPlanIdKey)
+    }
+    
+    func loadCurrentPlanId() -> UUID? {
+        guard let uuidString = UserDefaults.standard.string(forKey: currentPlanIdKey) else {
+            return nil
+        }
+        return UUID(uuidString: uuidString)
     }
     
     // MARK: - Sessions Management
@@ -50,5 +63,6 @@ final class DataManager {
     func clearAllData() {
         UserDefaults.standard.removeObject(forKey: plansKey)
         UserDefaults.standard.removeObject(forKey: sessionsKey)
+        UserDefaults.standard.removeObject(forKey: currentPlanIdKey)
     }
 }
