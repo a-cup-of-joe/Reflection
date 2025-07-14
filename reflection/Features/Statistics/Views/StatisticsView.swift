@@ -277,6 +277,7 @@ struct StatisticsTimeBar: View {
     let animationProgress: Double
     
     @State private var isHovered = false
+    @State private var shakeOffset: CGFloat = 0
     
     var body: some View {
         GeometryReader { geometry in
@@ -292,6 +293,27 @@ struct StatisticsTimeBar: View {
                     
                     // 进度条 (实际时间) - 带动画
                     createProgressBar(containerWidth: geometry.size.width)
+                    
+                    // 文字层 - 始终在最上层
+                    HStack {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text(item.project)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white) // 白色文字在有色玻璃上更清晰
+                                .lineLimit(1)
+                            
+                            Text(TimeFormatters.formatDuration(item.plannedTime))
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.9)) // 半透明白色的次要文字
+                        }
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        
+                        Spacer()
+                    }
+                    .frame(width: calculateBarWidth(containerWidth: geometry.size.width, time: item.plannedTime), height: 44)
+                    .allowsHitTesting(false) // 防止文字层阻挡点击
                 }
                 .frame(height: 44)
                 
@@ -323,25 +345,6 @@ struct StatisticsTimeBar: View {
         ZStack {
             // 背景形状和阴影
             createBackgroundWithShadow()
-            
-            // 内容
-            HStack {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(item.project)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white) // 白色文字在有色玻璃上更清晰
-                        .lineLimit(1)
-                    
-                    Text(TimeFormatters.formatDuration(item.plannedTime))
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9)) // 半透明白色的次要文字
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.sm)
-                
-                Spacer()
-            }
         }
         .frame(width: barWidth, height: 44)
         .scaleEffect(isHovered ? 1.02 : 1.0)
@@ -355,7 +358,15 @@ struct StatisticsTimeBar: View {
         RoundedRectangle(cornerRadius: CornerRadius.small)
             .fill(createProgressStyle())
             .frame(width: progressWidth * animationProgress, height: 44)
+            .offset(x: item.completionPercentage > 1.0 ? shakeOffset : 0) // 超过100%时添加抖动
             .animation(.easeInOut(duration: 1.5), value: animationProgress)
+            .allowsHitTesting(false) // 确保进度条不阻挡交互
+            .onAppear {
+                // 如果超过100%，开始抖动动画
+                if item.completionPercentage > 1.0 {
+                    startShakeAnimation()
+                }
+            }
     }
     
     private func createBackgroundStyle() -> LinearGradient {
@@ -472,21 +483,18 @@ struct StatisticsTimeBar: View {
     }
     
     private func createProgressStyle() -> LinearGradient {
-        if item.completionPercentage > 1.0 {
-            return LinearGradient(
-                colors: [Color.red.opacity(0.8), Color.orange.opacity(0.8)],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        } else if item.isSpecialMaterial {
+        // 始终使用项目主题色，不管是否超过100%
+        if item.isSpecialMaterial {
+            // 特殊材质使用预定义的渐变
             return item.specialMaterialGradient ?? LinearGradient(
-                colors: [item.themeColorSwiftUI, item.themeColorSwiftUI.opacity(0.8)],
+                colors: [item.themeColorSwiftUI, item.themeColorSwiftUI],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         } else {
+            // 普通颜色使用原色的渐变
             return LinearGradient(
-                colors: [item.themeColorSwiftUI, item.themeColorSwiftUI.opacity(0.8)],
+                colors: [item.themeColorSwiftUI, item.themeColorSwiftUI],
                 startPoint: .leading,
                 endPoint: .trailing
             )
@@ -515,6 +523,13 @@ struct StatisticsTimeBar: View {
             return plannedBarWidth + overflowWidth
         } else {
             return plannedBarWidth * item.completionPercentage
+        }
+    }
+    
+    // 抖动动画方法
+    private func startShakeAnimation() {
+        withAnimation(Animation.easeInOut(duration: 0.1).repeatForever(autoreverses: true)) {
+            shakeOffset = 2.0
         }
     }
 }
