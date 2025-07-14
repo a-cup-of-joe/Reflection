@@ -181,10 +181,16 @@ struct PlanetarySystem: View {
         return Set(currentPlan.planItems.map { $0.project })
     }
     
-    // 按项目名称分组sessions（过滤掉少于10秒的session，且仅显示与当前TimePlan相关的）
+    // 按项目名称分组sessions（过滤掉少于10秒的session，且仅显示与当前TimePlan相关的当日sessions）
     private var groupedSessions: [(projectName: String, sessions: [FocusSession])] {
+        let calendar = Calendar.current
+        let today = Date()
+        
         let filteredSessions = sessionViewModel.sessions.filter { session in
-            session.duration >= 10 && currentPlanProjects.contains(session.projectName)
+            let isToday = calendar.isDate(session.startTime, inSameDayAs: today)
+            return session.duration >= 10 && 
+                   currentPlanProjects.contains(session.projectName) && 
+                   isToday
         }
         let grouped = Dictionary(grouping: filteredSessions) { $0.projectName }
         return grouped.map { (projectName: $0.key, sessions: $0.value) }

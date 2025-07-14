@@ -171,44 +171,56 @@ struct PlanFormView: View {
     // MARK: - Actions
     
     private func createPlan() {
-        guard !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            showError("请输入时间段名称")
-            return
-        }
+        // 确保所有正在编辑的时间字段都被提交
+        commitPendingTimeEdits()
         
-        guard totalMinutes > 0 else {
-            showError("计划时间必须大于0")
-            return
+        // 等待焦点失去和数据更新完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            guard !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                showError("请输入时间段名称")
+                return
+            }
+            
+            guard totalMinutes > 0 else {
+                showError("计划时间必须大于0")
+                return
+            }
+            
+            planViewModel.addPlanItem(
+                project: projectName,
+                plannedTime: TimeInterval(totalMinutes * 60),
+                themeColor: selectedThemeColor
+            )
+            dismiss()
         }
-        
-        planViewModel.addPlanItem(
-            project: projectName,
-            plannedTime: TimeInterval(totalMinutes * 60),
-            themeColor: selectedThemeColor
-        )
-        dismiss()
     }
     
     private func savePlan() {
         guard case .edit(let plan) = mode else { return }
         
-        guard !projectName.isEmpty else {
-            showError("请输入时间段名称")
-            return
-        }
+        // 确保所有正在编辑的时间字段都被提交
+        commitPendingTimeEdits()
         
-        guard totalMinutes > 0 else {
-            showError("计划时间必须大于0")
-            return
+        // 等待焦点失去和数据更新完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            guard !projectName.isEmpty else {
+                showError("请输入时间段名称")
+                return
+            }
+            
+            guard totalMinutes > 0 else {
+                showError("计划时间必须大于0")
+                return
+            }
+            
+            planViewModel.updatePlanItem(
+                planItemId: plan.id,
+                project: projectName,
+                plannedTime: TimeInterval(totalMinutes * 60),
+                themeColor: selectedThemeColor
+            )
+            dismiss()
         }
-        
-        planViewModel.updatePlanItem(
-            planItemId: plan.id,
-            project: projectName,
-            plannedTime: TimeInterval(totalMinutes * 60),
-            themeColor: selectedThemeColor
-        )
-        dismiss()
     }
     
     private func deletePlan() {
@@ -220,6 +232,11 @@ struct PlanFormView: View {
     private func showError(_ message: String) {
         errorMessage = message
         showingError = true
+    }
+    
+    private func commitPendingTimeEdits() {
+        // 清除焦点以触发正在编辑的时间字段的提交
+        NSApp.keyWindow?.makeFirstResponder(nil)
     }
 }
 
