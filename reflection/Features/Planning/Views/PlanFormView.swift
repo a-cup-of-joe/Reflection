@@ -66,6 +66,11 @@ struct PlanFormView: View {
             // 点击空白区域时清除焦点
             NSApp.keyWindow?.makeFirstResponder(nil)
         }
+        .onKeyPress(.escape) {
+            // ESC键关闭表单
+            dismiss()
+            return .handled
+        }
         .confirmationDialog("确认保存", isPresented: $showingSaveConfirmation) {
             Button("保存", action: savePlan)
         }
@@ -363,6 +368,13 @@ struct PlanTimeAdjuster: View {
                             .onChange(of: hoursText) { _, newValue in
                                 validateHoursInput(newValue)
                             }
+                            .onKeyPress(.escape) {
+                                // ESC键取消编辑
+                                isEditingHours = false
+                                hoursFieldFocused = false
+                                updateDisplayValues()
+                                return .handled
+                            }
                     } else {
                         Text(displayHours)
                             .font(.system(size: 18, weight: .medium, design: .monospaced))
@@ -406,6 +418,13 @@ struct PlanTimeAdjuster: View {
                             }
                             .onChange(of: minutesText) { _, newValue in
                                 validateMinutesInput(newValue)
+                            }
+                            .onKeyPress(.escape) {
+                                // ESC键取消编辑
+                                isEditingMinutes = false
+                                minutesFieldFocused = false
+                                updateDisplayValues()
+                                return .handled
                             }
                     } else {
                         Text(displayMinutes)

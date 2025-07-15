@@ -252,7 +252,7 @@ struct EmptyPlanStateView: View {
                 .font(.headline)
                 .foregroundColor(.secondaryGray)
             
-            Text("点击上方 + 按钮创建您的第一个计划")
+            Text("点击 + 按钮创建您的第一个计划")
                 .font(.body)
                 .foregroundColor(.secondaryGray)
                 .multilineTextAlignment(.center)

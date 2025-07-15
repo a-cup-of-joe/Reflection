@@ -123,6 +123,13 @@ struct PlanView: View {
                 }
             }
         }
+        .onTapGesture {
+            // 点击空白区域时清除焦点
+            if isEditingTitle {
+                saveTitleEdit()
+            }
+            NSApp.keyWindow?.makeFirstResponder(nil)
+        }
         .sheet(isPresented: $showingAddPlan) {
             PlanFormView(mode: .create)
                 .environmentObject(planViewModel)
@@ -139,6 +146,16 @@ struct PlanView: View {
             if !newValue && isEditingTitle {
                 saveTitleEdit()
             }
+        }
+        .onKeyPress(.escape) {
+            if isEditingTitle {
+                // ESC键取消标题编辑
+                isEditingTitle = false
+                isTitleFocused = false
+                editingTitle = planViewModel.currentPlan?.name ?? "Time Planner"
+                return .handled
+            }
+            return .ignored
         }
     }
     
@@ -171,7 +188,7 @@ struct EmptyStateView: View {
                 .font(.headline)
                 .foregroundColor(.secondaryGray)
             
-            Text("点击上方 + 按钮创建您的第一个时间段")
+            Text("点击 + 按钮创建您的第一个时间段")
                 .font(.body)
                 .foregroundColor(.secondaryGray)
                 .multilineTextAlignment(.center)

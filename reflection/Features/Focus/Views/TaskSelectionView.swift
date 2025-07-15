@@ -6,6 +6,56 @@
 //
 
 import SwiftUI
+import AppKit
+
+// MARK: - KeyboardHandlerView for macOS
+struct KeyboardHandlerView: NSViewRepresentable {
+    let onKeyPress: (KeyboardKey) -> Bool
+    
+    enum KeyboardKey {
+        case escape
+        case other(UInt16)
+    }
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = KeyboardHandlerNSView()
+        view.onKeyPress = onKeyPress
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let view = nsView as? KeyboardHandlerNSView {
+            view.onKeyPress = onKeyPress
+        }
+    }
+}
+
+class KeyboardHandlerNSView: NSView {
+    var onKeyPress: ((KeyboardHandlerView.KeyboardKey) -> Bool)?
+    
+    override var acceptsFirstResponder: Bool { true }
+    
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.makeFirstResponder(self)
+    }
+    
+    override func keyDown(with event: NSEvent) {
+        let key: KeyboardHandlerView.KeyboardKey
+        
+        if event.keyCode == 53 { // ESC key
+            key = .escape
+        } else {
+            key = .other(event.keyCode)
+        }
+        
+        if let handler = onKeyPress, handler(key) {
+            return // 事件已处理
+        }
+        
+        super.keyDown(with: event)
+    }
+}
 
 struct TaskSelectionView: View {
     @EnvironmentObject var sessionViewModel: SessionViewModel
@@ -46,6 +96,20 @@ struct TaskSelectionView: View {
             )
         }
         .background(Color.appBackground)
+        .onTapGesture {
+            // 点击空白区域时清除焦点
+            NSApp.keyWindow?.makeFirstResponder(nil)
+        }
+        .background(
+            // 隐藏的可聚焦视图用于捕获键盘事件
+            KeyboardHandlerView { key in
+                if case .escape = key {
+                    onBack()
+                    return true
+                }
+                return false
+            }
+        )
         .transition(.asymmetric(
             insertion: .move(edge: .trailing),
             removal: .move(edge: .leading)

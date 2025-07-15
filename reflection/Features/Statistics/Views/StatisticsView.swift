@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct StatisticsView: View {
     @EnvironmentObject var statisticsViewModel: StatisticsViewModel
@@ -186,6 +187,15 @@ struct HistoryStatisticsView: View {
                 }
             }
             .containerStyle()
+            
+            KeyboardHandlerView { key in
+                if case .escape = key {
+                    statisticsViewModel.exitHistoryMode()
+                    isPresented = false
+                    return true
+                }
+                return false
+            }
         }
         .onAppear {
             statisticsViewModel.enterHistoryMode()
@@ -196,11 +206,6 @@ struct HistoryStatisticsView: View {
             withAnimation(.easeInOut(duration: 1.5)) {
                 animationProgress = 1.0
             }
-        }
-        .onKeyPress(.escape) {
-            statisticsViewModel.exitHistoryMode()
-            isPresented = false
-            return .handled
         }
     }
 }
@@ -554,6 +559,7 @@ struct StatisticsEmptyStateView: View {
         .padding(.vertical, Spacing.xxl)
     }
 }
+
 
 #Preview {
     StatisticsView()
