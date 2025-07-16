@@ -853,7 +853,7 @@ struct BigCircleStartButton: View {
         // 5. 强化心电图脉冲
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                pulseWave1 += 0.5
+                pulseWave1 += 3.0
                 pulseWave2 += 0.3
             }
         }
