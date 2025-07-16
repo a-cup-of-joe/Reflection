@@ -21,6 +21,9 @@ struct PlanFormView: View {
     @State private var totalMinutes: Int
     @State private var selectedThemeColor: String
     @State private var meaning: String
+    @State private var targets: [(DateRange, String)] = []
+    @State private var archievedTargets: [DateRange: String] = [:]
+    @State private var showArchivedTemplate: Bool = false
     @State private var showingDeleteConfirmation = false
     @State private var showingSaveConfirmation = false
     @State private var showingError = false
@@ -34,11 +37,15 @@ struct PlanFormView: View {
             self._totalMinutes = State(initialValue: 30)
             self._selectedThemeColor = State(initialValue: "#00CE4A")
             self._meaning = State(initialValue: "")
+            self._targets = State(initialValue: []) // 初始无目标
+            self._archievedTargets = State(initialValue: [:])
         case .edit(let plan):
             self._projectName = State(initialValue: plan.project)
             self._totalMinutes = State(initialValue: Int(plan.plannedTime / 60))
             self._selectedThemeColor = State(initialValue: plan.themeColor)
             self._meaning = State(initialValue: plan.meaning)
+            self._targets = State(initialValue: plan.targets.map { ($0.key, $0.value) })
+            self._archievedTargets = State(initialValue: plan.archievedTargets)
         }
     }
     
@@ -63,7 +70,7 @@ struct PlanFormView: View {
             .padding(Spacing.md)
             .background(Color.appBackground)
         }
-        .frame(width: 380, height: frameHeight)
+        .frame(width: 450, height: frameHeight)
         .background(Color.appBackground)
         .onTapGesture {
             // 点击空白区域时清除焦点
@@ -98,8 +105,8 @@ struct PlanFormView: View {
     
     private var frameHeight: CGFloat {
         switch mode {
-        case .create: return 360
-        case .edit: return 380
+        case .create: return 460
+        case .edit: return 480
         }
     }
     
@@ -142,6 +149,184 @@ struct PlanFormView: View {
                         .background(Color.clear)
                         .cornerRadius(CornerRadius.small)
                         .frame(height: 48)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack(spacing: 4) {
+                    Text("目标")
+                        .font(.subheadline)
+                        .foregroundColor(.secondaryGray)
+                        .frame(width: 60, alignment: .leading)
+                    if targets.isEmpty {
+                        Button(action: {
+                            targets.append((DateRange(), ""))
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.primaryGreen)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        if !archievedTargets.isEmpty {
+                            Button(action: {
+                                withAnimation {
+                                    showArchivedTemplate.toggle()
+                                }
+                            }) {
+                                Image(systemName: "archivebox")
+                                    .foregroundColor(.secondaryGray)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+
+                if !targets.isEmpty {
+                    ForEach(targets.indices, id: \ .self) { index in
+                            HStack(alignment: .top, spacing: Spacing.md) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    DatePicker("开始", selection: Binding(
+                                        get: { targets[index].0.start },
+                                        set: { newStart in
+                                            let end = targets[index].0.end
+                                            targets[index].0 = DateRange(start: newStart, end: end)
+                                        }
+                                    ), displayedComponents: .date)
+                                        .labelsHidden()
+                                        .frame(width: 110)
+                                    DatePicker("结束", selection: Binding(
+                                        get: { targets[index].0.end },
+                                        set: { newEnd in
+                                            let start = targets[index].0.start
+                                            targets[index].0 = DateRange(start: start, end: newEnd)
+                                        }
+                                    ), displayedComponents: .date)
+                                        .labelsHidden()
+                                        .frame(width: 110)
+                                }
+                                ZStack(alignment: .topLeading) {
+                                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                                        .stroke(Color.borderGray, lineWidth: 1)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: CornerRadius.small)
+                                                .fill(Color.white)
+                                        )
+                                        .frame(minHeight: 48, maxHeight: 48)
+                                    TextField("目标内容", text: Binding(
+                                        get: { targets[index].1 },
+                                        set: { targets[index].1 = $0 }
+                                    ))
+                                        .textFieldStyle(PlainTextFieldStyle())
+                                        .font(.body)
+                                        .padding(.horizontal, Spacing.sm)
+                                        .padding(.vertical, 10)
+                                        .background(Color.clear)
+                                        .cornerRadius(CornerRadius.small)
+                                        .frame(minWidth: 120, minHeight: 64, maxHeight: 64, alignment: .top)
+                                }
+                                VStack(spacing: 6) {
+                                    if case .edit = mode, !targets[index].1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        Button(action: {
+                                            // 归档目标到 archievedTargets
+                                            let archived = targets[index]
+                                            if archievedTargets[archived.0] == nil {
+                                                archievedTargets[archived.0] = archived.1
+                                            }
+                                            targets.remove(at: index)
+                                        }) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.green)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                    Button(action: {
+                                        targets.remove(at: index)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                }
+
+                if !targets.isEmpty && targets.count < 5 {
+                    HStack(spacing: 4) {
+                        Button(action: {
+                            targets.append((DateRange(), ""))
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.primaryGreen)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        if !archievedTargets.isEmpty {
+                            Button(action: {
+                                withAnimation {
+                                    showArchivedTemplate.toggle()
+                                }
+                            }) {
+                                Image(systemName: "archivebox")
+                                    .foregroundColor(.secondaryGray)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                    .offset(y: -10)
+                    .offset(x: 7)
+                }
+
+                // 展示已归档目标
+                if !archievedTargets.isEmpty && showArchivedTemplate {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("已归档目标")
+                            .font(.footnote)
+                            .foregroundColor(.secondaryGray)
+                        ForEach(Array(archievedTargets.keys), id: \.self) { key in
+                            HStack(alignment: .top, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(key.start, formatter: dateFormatter) ~ \(key.end, formatter: dateFormatter)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondaryGray)
+                                }
+                                ZStack(alignment: .topLeading) {
+                                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                                        .stroke(Color.borderGray, lineWidth: 1)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: CornerRadius.small)
+                                                .fill(Color.gray.opacity(0.1))
+                                        )
+                                        .frame(minHeight: 32, maxHeight: 32)
+                                    Text(archievedTargets[key] ?? "")
+                                        .font(.caption)
+                                        .foregroundColor(.secondaryGray)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                }
+                                Spacer()
+                                VStack(spacing: 6) {
+                                    Button(action: {
+                                        // 恢复归档目标到 targets
+                                        if let value = archievedTargets[key] {
+                                            targets.append((key, value))
+                                            archievedTargets.removeValue(forKey: key)
+                                        }
+                                    }) {
+                                        Image(systemName: "arrow.uturn.left")
+                                            .foregroundColor(.primaryGreen)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    Button(action: {
+                                        // 永久删除归档目标
+                                        archievedTargets.removeValue(forKey: key)
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -213,11 +398,19 @@ struct PlanFormView: View {
                 return
             }
 
+            // 只保存有内容的targets
+            let filteredTargets = targets.filter { !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let targetsDict = Dictionary(uniqueKeysWithValues: filteredTargets)
+            // 只保存有内容的archievedTargets
+            let archievedDict = archievedTargets.filter { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
             planViewModel.addPlanItem(
                 project: projectName,
                 plannedTime: TimeInterval(totalMinutes * 60),
                 themeColor: selectedThemeColor,
-                meaning: meaning
+                meaning: meaning,
+                targets: targetsDict,
+                archievedTargets: archievedDict
             )
             dismiss()
         }
@@ -241,16 +434,32 @@ struct PlanFormView: View {
                 return
             }
 
+            // 只保存有内容的targets
+            let filteredTargets = targets.filter { !$0.1.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let targetsDict = Dictionary(uniqueKeysWithValues: filteredTargets)
+            // 只保存有内容的archievedTargets
+            let archievedDict = archievedTargets.filter { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
             planViewModel.updatePlanItem(
                 planItemId: plan.id,
                 project: projectName,
                 plannedTime: TimeInterval(totalMinutes * 60),
                 themeColor: selectedThemeColor,
-                meaning: meaning
+                meaning: meaning,
+                targets: targetsDict,
+                archievedTargets: archievedDict
             )
             dismiss()
         }
     }
+// MARK: - Date Formatter for Archived Targets
+
+private let dateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .none
+    return formatter
+}()
     
     private func deletePlan() {
         guard case .edit(let plan) = mode else { return }
@@ -569,8 +778,6 @@ struct PlanTimeAdjuster: View {
         }
     }
 }
-
-
 
 // MARK: - Previews
 
