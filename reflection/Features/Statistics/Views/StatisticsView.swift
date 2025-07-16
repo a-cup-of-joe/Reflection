@@ -195,7 +195,7 @@ struct HistoryStatisticsView: View {
                     return true
                 }
                 return false
-            }
+            }.allowsHitTesting(false)
         }
         .onAppear {
             statisticsViewModel.enterHistoryMode()
