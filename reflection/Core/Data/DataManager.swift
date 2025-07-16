@@ -14,6 +14,8 @@ final class DataManager {
     private let plansKey = "saved_plans"
     private let sessionsKey = "saved_sessions"
     private let currentPlanIdKey = "current_plan_id"
+    private let notesKey = "notes"
+    private let currentNoteKey = "current_note"
     
     private init() {}
     
@@ -57,6 +59,31 @@ final class DataManager {
             return []
         }
         return decoded
+    }
+
+    func fetchNotes() -> [Note] {
+        guard let data = UserDefaults.standard.data(forKey: "notes"),
+              let notes = try? JSONDecoder().decode([Note].self, from: data) else {
+            return []
+        }
+        return notes
+    }
+
+    func fetchCurrentNoteId() -> UUID? {
+        guard let uuidString = UserDefaults.standard.string(forKey: currentNoteKey) else {
+            return nil
+        }
+        return UUID(uuidString: uuidString)
+    }
+
+    func saveNotes(_ notes: [Note]) {
+        if let encoded = try? JSONEncoder().encode(notes) {
+            UserDefaults.standard.set(encoded, forKey: notesKey)
+        }
+    }
+
+    func saveCurrentNoteId(_ noteId: UUID) {
+        UserDefaults.standard.set(noteId.uuidString, forKey: currentNoteKey)
     }
     
     // MARK: - Utility Methods

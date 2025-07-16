@@ -212,12 +212,11 @@ struct PlanFormView: View {
                                             RoundedRectangle(cornerRadius: CornerRadius.small)
                                                 .fill(Color.white)
                                         )
-                                        .frame(minHeight: 48, maxHeight: 48)
-                                    TextField("目标内容", text: Binding(
+                                        .frame(minHeight: 64, maxHeight: 64)
+                                    TextEditor(text: Binding(
                                         get: { targets[index].1 },
                                         set: { targets[index].1 = $0 }
                                     ))
-                                        .textFieldStyle(PlainTextFieldStyle())
                                         .font(.body)
                                         .padding(.horizontal, Spacing.sm)
                                         .padding(.vertical, 10)

@@ -21,12 +21,14 @@ struct ContentView: View {
         static let planning = 0
         static let session = 1
         static let statistics = 2
+        static let note = 3
     }
     
     // MARK: - State Properties
     @StateObject private var planViewModel = PlanViewModel()
     @StateObject private var sessionViewModel = SessionViewModel()
     @StateObject private var statisticsViewModel = StatisticsViewModel()
+    @StateObject private var noteViewModel = NoteViewModel()
     
     @State private var selectedTab = TabIndex.planning
     @State private var windowSize: CGSize = .zero
@@ -83,6 +85,9 @@ struct ContentView: View {
             case TabIndex.statistics:
                 StatisticsView()
                     .environmentObject(statisticsViewModel)
+            case TabIndex.note:
+                NoteView()
+                    .environmentObject(noteViewModel)
             default:
                 PlanView()
                     .environmentObject(planViewModel)
@@ -134,19 +139,26 @@ struct ContentView: View {
             ) {
                 selectedTab = TabIndex.planning
             }
-            
+
             SidebarIconButton(
                 icon: "timer",
                 isSelected: selectedTab == TabIndex.session
             ) {
                 selectedTab = TabIndex.session
             }
-            
+
             SidebarIconButton(
                 icon: "chart.bar",
                 isSelected: selectedTab == TabIndex.statistics
             ) {
                 selectedTab = TabIndex.statistics
+            }
+
+            SidebarIconButton(
+                icon: "doc.plaintext",
+                isSelected: selectedTab == TabIndex.note
+            ) {
+                selectedTab = TabIndex.note
             }
         }
     }
