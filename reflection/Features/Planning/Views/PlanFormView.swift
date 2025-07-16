@@ -20,6 +20,7 @@ struct PlanFormView: View {
     @State private var projectName: String
     @State private var totalMinutes: Int
     @State private var selectedThemeColor: String
+    @State private var meaning: String
     @State private var showingDeleteConfirmation = false
     @State private var showingSaveConfirmation = false
     @State private var showingError = false
@@ -32,10 +33,12 @@ struct PlanFormView: View {
             self._projectName = State(initialValue: "")
             self._totalMinutes = State(initialValue: 30)
             self._selectedThemeColor = State(initialValue: "#00CE4A")
+            self._meaning = State(initialValue: "")
         case .edit(let plan):
             self._projectName = State(initialValue: plan.project)
             self._totalMinutes = State(initialValue: Int(plan.plannedTime / 60))
             self._selectedThemeColor = State(initialValue: plan.themeColor)
+            self._meaning = State(initialValue: plan.meaning)
         }
     }
     
@@ -95,8 +98,8 @@ struct PlanFormView: View {
     
     private var frameHeight: CGFloat {
         switch mode {
-        case .create: return 260
-        case .edit: return 280
+        case .create: return 360
+        case .edit: return 380
         }
     }
     
@@ -114,13 +117,32 @@ struct PlanFormView: View {
             PlanFormField(label: "名称") {
                 textFieldView
             }
-            
+
             PlanFormField(label: "颜色") {
                 PlanColorPicker(selectedColor: $selectedThemeColor)
             }
-            
+
             PlanFormField(label: "时间") {
                 PlanTimeAdjuster(totalMinutes: $totalMinutes)
+            }
+
+            PlanFormField(label: "意义") {
+                ZStack {
+                    RoundedRectangle(cornerRadius: CornerRadius.small)
+                        .stroke(Color.borderGray, lineWidth: 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadius.small)
+                                .fill(Color.white)
+                        )
+                        .frame(height: 48)
+                    TextEditor(text: $meaning)
+                        .font(.body)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, 6)
+                        .background(Color.clear)
+                        .cornerRadius(CornerRadius.small)
+                        .frame(height: 48)
+                }
             }
         }
     }
@@ -178,23 +200,24 @@ struct PlanFormView: View {
     private func createPlan() {
         // 确保所有正在编辑的时间字段都被提交
         commitPendingTimeEdits()
-        
+
         // 等待焦点失去和数据更新完成
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             guard !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 showError("请输入时间段名称")
                 return
             }
-            
+
             guard totalMinutes > 0 else {
                 showError("计划时间必须大于0")
                 return
             }
-            
+
             planViewModel.addPlanItem(
                 project: projectName,
                 plannedTime: TimeInterval(totalMinutes * 60),
-                themeColor: selectedThemeColor
+                themeColor: selectedThemeColor,
+                meaning: meaning
             )
             dismiss()
         }
@@ -202,27 +225,28 @@ struct PlanFormView: View {
     
     private func savePlan() {
         guard case .edit(let plan) = mode else { return }
-        
+
         // 确保所有正在编辑的时间字段都被提交
         commitPendingTimeEdits()
-        
+
         // 等待焦点失去和数据更新完成
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             guard !projectName.isEmpty else {
                 showError("请输入时间段名称")
                 return
             }
-            
+
             guard totalMinutes > 0 else {
                 showError("计划时间必须大于0")
                 return
             }
-            
+
             planViewModel.updatePlanItem(
                 planItemId: plan.id,
                 project: projectName,
                 plannedTime: TimeInterval(totalMinutes * 60),
-                themeColor: selectedThemeColor
+                themeColor: selectedThemeColor,
+                meaning: meaning
             )
             dismiss()
         }

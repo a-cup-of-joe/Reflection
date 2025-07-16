@@ -29,6 +29,25 @@ struct Plan: Identifiable, Codable {
     }
 }
 
+struct DateRange: Hashable, Codable {
+    let start: Date
+    let end: Date
+
+    init(start: Date = Date(), end: Date = Calendar.current.date(byAdding: .day, value: 10, to: Date()) ?? Date()) {
+        self.start = start
+        if end < start {
+            // end 默认值为 start+10天
+            self.end = Calendar.current.date(byAdding: .day, value: 10, to: start) ?? Date()
+        } else {
+            self.end = end
+        }
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(start)
+        hasher.combine(end)
+    }
+}
 // MARK: - PlanItem Model
 struct PlanItem: Identifiable, Codable {
     let id: UUID
@@ -37,14 +56,20 @@ struct PlanItem: Identifiable, Codable {
     var actualTime: TimeInterval
     let createdAt: Date
     var themeColor: String
+    var meaning: String
+    var targets: [DateRange: String]
+    var archievedTargets: [DateRange: String]
     
-    init(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
+    init(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A", meaning: String = "", targets: [DateRange: String] = [:], archievedTargets: [DateRange: String] = [:]) {
         self.id = UUID()
         self.project = project
         self.plannedTime = plannedTime
         self.actualTime = 0
         self.createdAt = Date()
         self.themeColor = themeColor
+        self.meaning = meaning
+        self.targets = targets
+        self.archievedTargets = archievedTargets
     }
 }
 
@@ -145,11 +170,11 @@ final class PlanViewModel: ObservableObject {
     }
     
     // MARK: - PlanItem Management (只操作当前计划)
-    func addPlanItem(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A") {
+    func addPlanItem(project: String, plannedTime: TimeInterval, themeColor: String = "#00CE4A", meaning: String = "", targets: [DateRange: String] = [:], archievedTargets: [DateRange: String] = [:]) {
         guard var plan = currentPlan else { return }
         let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedProject.isEmpty else { return }
-        let newPlanItem = PlanItem(project: trimmedProject, plannedTime: plannedTime, themeColor: themeColor)
+        let newPlanItem = PlanItem(project: trimmedProject, plannedTime: plannedTime, themeColor: themeColor, meaning: meaning, targets: targets, archievedTargets: archievedTargets)
         plan.planItems.append(newPlanItem)
         plan.updateLastModified()
         updateCurrentPlan(plan)
@@ -157,7 +182,7 @@ final class PlanViewModel: ObservableObject {
         savePlans()
     }
     
-    func updatePlanItem(planItemId: UUID, project: String, plannedTime: TimeInterval, themeColor: String) {
+    func updatePlanItem(planItemId: UUID, project: String, plannedTime: TimeInterval, themeColor: String, meaning: String = "", targets: [DateRange: String] = [:], archievedTargets: [DateRange: String] = [:]) {
         guard var plan = currentPlan,
               let index = plan.planItems.firstIndex(where: { $0.id == planItemId }) else { return }
         let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -165,6 +190,9 @@ final class PlanViewModel: ObservableObject {
         plan.planItems[index].project = trimmedProject
         plan.planItems[index].plannedTime = plannedTime
         plan.planItems[index].themeColor = themeColor
+        plan.planItems[index].meaning = meaning
+        plan.planItems[index].targets = targets
+        plan.planItems[index].archievedTargets = archievedTargets
         plan.updateLastModified()
         updateCurrentPlan(plan)
         currentPlanItems = plan.planItems
