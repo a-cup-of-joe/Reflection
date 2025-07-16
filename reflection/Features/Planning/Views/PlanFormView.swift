@@ -51,24 +51,26 @@ struct PlanFormView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // 标题栏
-            Text(titleText)
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-                .padding(Spacing.md)
-                .background(Color.appBackground)
-            
-            // 表单内容
-            VStack(spacing: Spacing.md) {
-                formFields
-                
-                Spacer(minLength: Spacing.xs)
-                
-                actionButtons
+            // 标题栏 + 操作按钮
+            HStack(alignment: .center, spacing: 0) {
+                Text(titleText)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                Spacer()
+                headerActionButtons
             }
             .padding(Spacing.md)
             .background(Color.appBackground)
+
+            // 表单内容可滚动
+            ScrollView {
+                VStack(spacing: Spacing.md) {
+                    formFields
+                }
+                .padding(Spacing.md)
+                .background(Color.appBackground)
+            }
         }
         .frame(width: 450, height: frameHeight)
         .background(Color.appBackground)
@@ -356,20 +358,18 @@ struct PlanFormView: View {
         }
     }
     
-    private var actionButtons: some View {
+    // 表头操作按钮
+    private var headerActionButtons: some View {
         HStack(spacing: Spacing.sm) {
-            Button("取消", action: dismiss.callAsFunction)
-                .buttonStyle(SmallSecondaryButtonStyle())
-            
-            Spacer()
-            
             if case .edit = mode {
                 Button("删除") { showingDeleteConfirmation = true }
-                    .buttonStyle(SmallSecondaryButtonStyle())
-                    .foregroundColor(.red)
+                    .buttonStyle(SmallRedButtonStyle())
             }
-            
-            Button(primaryButtonText) { 
+            Spacer().frame(width: 16)
+            Button("取消", action: dismiss.callAsFunction)
+                .buttonStyle(SmallSecondaryButtonStyle())
+
+            Button(primaryButtonText) {
                 switch mode {
                 case .create: createPlan()
                 case .edit: showingSaveConfirmation = true
