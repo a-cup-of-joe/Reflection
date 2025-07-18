@@ -37,8 +37,11 @@ struct SessionView: View {
             switch currentPanel {
             case .idle:
                 IdleSessionView {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        currentPanel = .taskSelection
+                    //这里暂停1秒等动画播完
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            currentPanel = .taskSelection
+                        }
                     }
                 }
                 
