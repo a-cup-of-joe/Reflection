@@ -20,7 +20,6 @@ struct ActiveSessionView: View {
             
             // 呼吸球背景
             BreathingCircle(themeColor: currentSession.themeColor)
-            
             VStack(spacing: Spacing.xxl * 2) {
                 Spacer()
                 
@@ -60,8 +59,8 @@ struct ActiveSessionView: View {
                 Spacer()
                 
                 // 控制按钮
-                HStack(spacing: Spacing.xl) {
-                    // 暂停/恢复按钮
+                HStack(spacing: Spacing.lg) {
+                    // 暂停/恢复按钮（描线风格）
                     Button(action: {
                         if sessionViewModel.isPaused {
                             sessionViewModel.resumeSession()
@@ -70,22 +69,30 @@ struct ActiveSessionView: View {
                         }
                     }) {
                         SessionControlButton(
-                            iconName: sessionViewModel.isPaused ? "play.fill" : "pause.fill",
-                            buttonText: sessionViewModel.isPaused ? "继续" : "暂停",
+                            iconName: sessionViewModel.isPaused ? "play" : "pause",
                             color: Color.getSecondaryColor(for: currentSession.themeColor),
                             themeColor: currentSession.themeColor
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
                     
-                    // 结束按钮
+                    // 结束按钮（描线风格）
                     Button(action: onEnd) {
                         SessionControlButton(
-                            iconName: "stop.fill",
-                            buttonText: "结束",
+                            iconName: "stop",
                             color: Color.getSecondaryColor(for: currentSession.themeColor),
                             themeColor: currentSession.themeColor
                         )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // 新增笔记按钮（描线风格，无功能）
+                    Button(action: {}) {
+                        VStack(spacing: 2) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 20, weight: .regular))
+                                .foregroundColor(Color.white.opacity(0.45))
+                        }
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -177,30 +184,14 @@ struct BreathingCircle: View {
 // MARK: - 会话控制按钮组件
 struct SessionControlButton: View {
     let iconName: String
-    let buttonText: String
     let color: Color
     let themeColor: String
     
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.getGentleBackgroundColor(for: themeColor))
-                .overlay(
-                    Circle()
-                        .fill(Color.white.opacity(0.2))
-                )
-                .frame(width: 120, height: 120)
-            
-            VStack(spacing: 4) {
-                Image(systemName: iconName)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(.white)
-                
-                Text(buttonText)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-            }
+        VStack(spacing: 2) {
+            Image(systemName: iconName)
+                .font(.system(size: 22, weight: .regular))
+                .foregroundColor(Color.white.opacity(0.65))
         }
     }
 }
