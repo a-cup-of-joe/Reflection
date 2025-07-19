@@ -49,7 +49,10 @@ struct DateRange: Hashable, Codable {
     }
 }
 // MARK: - PlanItem Model
-struct PlanItem: Identifiable, Codable {
+struct PlanItem: Identifiable, Codable, Equatable {
+    static func == (lhs: PlanItem, rhs: PlanItem) -> Bool {
+        lhs.id == rhs.id
+    }
     let id: UUID
     var project: String
     var plannedTime: TimeInterval

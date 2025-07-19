@@ -70,29 +70,29 @@ struct TaskSelectionView: View {
     let onBack: () -> Void
     let onStart: () -> Void
     
+    @State private var showDraftAlert = false
+    @State private var hasDraft = false
+    
     var body: some View {
         HStack(spacing: 0) {
             TimeBlocksList(
-                plans: planViewModel.currentPlanItems.sorted { plan1, plan2 in
-                    let isCompleted1 = plan1.actualTime >= plan1.plannedTime
-                    let isCompleted2 = plan2.actualTime >= plan2.plannedTime
-                    if isCompleted1 != isCompleted2 {
-                        return !isCompleted1
-                    }
-                    return plan1.createdAt < plan2.createdAt
-                },
-                selectedPlan: $selectedPlan
+                plans: planViewModel.currentPlanItems.sorted(by: sortPlans),
+                selectedPlan: $selectedPlan,
+                hasDraft: hasDraft,
+                onRestoreDraft: restoreDraft
             )
             .frame(width: 280)
             
             TaskCustomizationArea(
-                selectedPlan: selectedPlan,
+                selectedPlan: $selectedPlan,
                 customProject: $customProject,
                 taskDescription: $taskDescription,
                 expectedTime: $expectedTime,
                 goals: $goals,
                 onBack: onBack,
-                onStart: onStart
+                onStart: onStart,
+                onSaveDraft: saveCurrentDraft,
+                hasDraft: hasDraft
             )
         }
         .background(Color.appBackground)
@@ -114,6 +114,68 @@ struct TaskSelectionView: View {
             insertion: .move(edge: .trailing),
             removal: .move(edge: .leading)
         ))
+        .onAppear {
+            checkForDraft()
+            setupAutoSave()
+        }
+        .onDisappear {
+            saveCurrentDraft()
+        }
+    }
+    
+    private func sortPlans(_ plan1: PlanItem, _ plan2: PlanItem) -> Bool {
+        let isCompleted1 = plan1.actualTime >= plan1.plannedTime
+        let isCompleted2 = plan2.actualTime >= plan2.plannedTime
+        if isCompleted1 != isCompleted2 {
+            return !isCompleted1
+        }
+        return plan1.createdAt < plan2.createdAt
+    }
+    
+    private func checkForDraft() {
+        hasDraft = TaskDraftManager.shared.hasDraft()
+    }
+    
+    private func restoreDraft() {
+        guard let draft = TaskDraftManager.shared.loadDraft() else { return }
+        
+        if let planID = draft.selectedPlanID {
+            selectedPlan = planViewModel.currentPlanItems.first { $0.id == planID }
+        } else {
+            selectedPlan = nil
+        }
+        
+        customProject = draft.customProject
+        taskDescription = draft.taskDescription
+        expectedTime = draft.expectedTime
+        goals = draft.goals.isEmpty ? [""] : draft.goals
+    }
+    
+    private func saveCurrentDraft() {
+        let selectedPlanID = selectedPlan?.id
+        TaskDraftManager.shared.saveDraft(
+            selectedPlanID: selectedPlanID,
+            customProject: customProject,
+            taskDescription: taskDescription,
+            expectedTime: expectedTime,
+            goals: goals.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        )
+    }
+    
+    private func clearDraft() {
+        TaskDraftManager.shared.clearDraft()
+        hasDraft = false
+        
+        // 重置表单
+        selectedPlan = nil
+        customProject = ""
+        taskDescription = ""
+        expectedTime = "30分钟"
+        goals = [""]
+    }
+    
+    private func setupAutoSave() {
+        // 使用onChange监听所有需要保存的变量变化
     }
 }
 
@@ -121,15 +183,31 @@ struct TaskSelectionView: View {
 struct TimeBlocksList: View {
     let plans: [PlanItem]
     @Binding var selectedPlan: PlanItem?
+    let hasDraft: Bool
+    let onRestoreDraft: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
-            Text("选择时间块")
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-                .padding(.horizontal, Spacing.lg)
-                .padding(.top, Spacing.xl)
+            HStack {
+                Text("选择时间块")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if hasDraft {
+                    Button(action: onRestoreDraft) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 14))
+                            .foregroundColor(.primaryGreen)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("恢复上次草稿")
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.xl)
             
             ScrollView {
                 LazyVStack(spacing: Spacing.md) {
@@ -239,13 +317,17 @@ struct SelectableTimeBar: View {
 
 // 右侧任务自定义区域
 struct TaskCustomizationArea: View {
-    let selectedPlan: PlanItem?
+    @EnvironmentObject var planViewModel: PlanViewModel
+    
+    @Binding var selectedPlan: PlanItem?
     @Binding var customProject: String
     @Binding var taskDescription: String
     @Binding var expectedTime: String
     @Binding var goals: [String]
     let onBack: () -> Void
     let onStart: () -> Void
+    let onSaveDraft: () -> Void
+    let hasDraft: Bool
     
     @State private var expectedMinutes: Int = 30
     
@@ -271,12 +353,30 @@ struct TaskCustomizationArea: View {
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
+                    .layoutPriority(1) // 确保标题不会被压缩
                 
                 Spacer()
                 
-                // 占位，保持标题居中
-                Color.clear
-                    .frame(width: 24, height: 24)
+                // 草稿操作按钮
+                HStack(spacing: Spacing.md) {
+                    if hasDraft {
+                        Button(action: restoreDraft) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 16))
+                                .foregroundColor(.primaryGreen)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .help("恢复草稿")
+                    }
+                    
+                    Button(action: clearForm) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundColor(.red)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("清除表单")
+                }
             }
             .padding(.horizontal, Spacing.xl)
             .padding(.vertical, Spacing.lg)
@@ -284,198 +384,275 @@ struct TaskCustomizationArea: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     // 项目信息
-                    if selectedPlan == nil {
-                        VStack(alignment: .leading, spacing: Spacing.md) {
-                            Text("项目名称")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            TextField("", text: $customProject)
-                                .textFieldStyle(PlainTextFieldStyle())
-                                .font(.body)
-                                .padding(.horizontal, Spacing.md)
-                                .padding(.vertical, Spacing.sm)
-                                .background(Color.cardBackground)
-                                .cornerRadius(CornerRadius.medium)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                        .stroke(Color.borderGray, lineWidth: 1)
-                                )
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: Spacing.md) {
-                            Text("选中项目")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            HStack(spacing: Spacing.md) {
-                                // 使用与 TimeBlockCard 一致的圆球设计
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            RadialGradient(
-                                                gradient: Gradient(colors: [
-                                                    selectedPlan!.themeColorSwiftUI.opacity(0.9),
-                                                    selectedPlan!.themeColorSwiftUI,
-                                                    selectedPlan!.themeColorSwiftUI.opacity(0.7)
-                                                ]),
-                                                center: .center,
-                                                startRadius: 0,
-                                                endRadius: 12
-                                            )
-                                        )
-                                        .frame(width: 24, height: 24)
-                                        .shadow(color: selectedPlan!.themeColorSwiftUI.opacity(0.6), radius: 2, x: 0, y: 1)
-                                    
-                                    Circle()
-                                        .fill(Color.white.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: -3, y: -3)
-                                }
-                                
-                                Text(selectedPlan?.project ?? "")
-                                    .font(.body)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.primary)
-                                
-                                Spacer()
-                            }
-                            .padding(Spacing.lg)
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                    .fill(selectedPlan?.themeColorSwiftUI.opacity(0.08) ?? Color.lightGreen)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                            .stroke(selectedPlan?.themeColorSwiftUI.opacity(0.3) ?? Color.borderGray, lineWidth: 1)
-                                    )
-                            )
-                        }
-                    }
+                    projectInfoSection
                     
                     // 任务描述 - 改为多行输入
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("任务主题")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        ZStack(alignment: .topLeading) {
-                            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                .stroke(Color.borderGray, lineWidth: 1)
-                                .background(
-                                    RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                        .fill(Color.cardBackground)
-                                )
-                                .frame(minHeight: 80)
-                            
-                            TextEditor(text: $taskDescription)
-                                .padding(Spacing.sm)
-                                .background(Color.clear)
-                                .font(.body)
-                                .scrollContentBackground(.hidden)
-                        }
-                    }
+                    taskDescriptionSection
                     
                     // 预期时间 - 复用PlanFormView的时间选择器
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("预期时间")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        PlanTimeAdjuster(totalMinutes: $expectedMinutes)
-                    }
+                    expectedTimeSection
                     
                     // 预期小目标 - 改为更大的输入框
-                    VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("预期目标")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        ForEach(goals.indices, id: \.self) { index in
-                            HStack(spacing: Spacing.md) {
-                                ZStack(alignment: .topLeading) {
-                                    RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                        .stroke(Color.borderGray, lineWidth: 1)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                                .fill(Color.cardBackground)
-                                        )
-                                        .frame(minHeight: 60)
-                                    
-                                    TextEditor(text: $goals[index])
-                                        .padding(Spacing.sm)
-                                        .background(Color.clear)
-                                        .font(.body)
-                                        .scrollContentBackground(.hidden)
-                                    
-                                }
-                                
-                                if goals.count > 1 {
-                                    Button(action: {
-                                        goals.remove(at: index)
-                                    }) {
-                                        Image(systemName: "minus.circle.fill")
-                                            .foregroundColor(.red)
-                                            .font(.system(size: 20))
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-                            }
-                        }
-                        
-                        if goals.count < 5 {
-                            Button(action: {
-                                goals.append("")
-                            }) {
-                                HStack(spacing: Spacing.sm) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .foregroundColor(.primaryGreen)
-                                    Text("添加目标")
-                                        .foregroundColor(.primaryGreen)
-                                }
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
+                    goalsSection
                 }
                 .padding(.horizontal, Spacing.xl)
                 .padding(.bottom, Spacing.xl)
             }
             
             // 开始按钮
-            VStack {
-                Button(action: onStart) {
-                    Text("开始专注")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.lg)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                .fill(canStart ? Color.primaryGreen : Color.secondaryGray)
-                        )
-                }
-                .disabled(!canStart)
-                .buttonStyle(PlainButtonStyle())
-                .padding(.horizontal, Spacing.xl)
-                .padding(.bottom, Spacing.xl)
-            }
-            .background(Color.appBackground)
+            startButtonSection
         }
         .onAppear {
-            // 初始化时间显示
             updateExpectedTimeString()
         }
         .onChange(of: expectedMinutes) { _, _ in
             updateExpectedTimeString()
+            onSaveDraft()
+        }
+        .onChange(of: customProject) { _, _ in
+            onSaveDraft()
+        }
+        .onChange(of: taskDescription) { _, _ in
+            onSaveDraft()
+        }
+        .onChange(of: goals) { _, _ in
+            onSaveDraft()
+        }
+        .onChange(of: selectedPlan) { _, _ in
+            onSaveDraft()
         }
     }
     
-    // 更新预期时间字符串
+    private var projectInfoSection: some View {
+        Group {
+            if selectedPlan == nil {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("项目名称")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    TextField("", text: $customProject)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .font(.body)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.sm)
+                        .background(Color.cardBackground)
+                        .cornerRadius(CornerRadius.medium)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                .stroke(Color.borderGray, lineWidth: 1)
+                        )
+                }
+            } else {
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text("选中项目")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: Spacing.md) {
+                        // 使用与 TimeBlockCard 一致的圆球设计
+                        projectIconView
+                        
+                        Text(selectedPlan?.project ?? "")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                    }
+                    .padding(Spacing.lg)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.medium)
+                            .fill(selectedPlan?.themeColorSwiftUI.opacity(0.08) ?? Color.lightGreen)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                                    .stroke(selectedPlan?.themeColorSwiftUI.opacity(0.3) ?? Color.borderGray, lineWidth: 1)
+                            )
+                    )
+                }
+            }
+        }
+    }
+    
+    private var projectIconView: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        gradient: Gradient(colors: [
+                            selectedPlan!.themeColorSwiftUI.opacity(0.9),
+                            selectedPlan!.themeColorSwiftUI,
+                            selectedPlan!.themeColorSwiftUI.opacity(0.7)
+                        ]),
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 12
+                    )
+                )
+                .frame(width: 24, height: 24)
+                .shadow(color: selectedPlan!.themeColorSwiftUI.opacity(0.6), radius: 2, x: 0, y: 1)
+            
+            Circle()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 8, height: 8)
+                .offset(x: -3, y: -3)
+        }
+    }
+    
+    private var taskDescriptionSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("任务主题")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    .stroke(Color.borderGray, lineWidth: 1)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.medium)
+                            .fill(Color.cardBackground)
+                    )
+                    .frame(minHeight: 80)
+                
+                TextEditor(text: $taskDescription)
+                    .padding(Spacing.sm)
+                    .background(Color.clear)
+                    .font(.body)
+                    .scrollContentBackground(.hidden)
+            }
+        }
+    }
+    
+    private var expectedTimeSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("预期时间")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            PlanTimeAdjuster(totalMinutes: $expectedMinutes)
+        }
+    }
+    
+    private var goalsSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("预期目标")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            ForEach(goals.indices, id: \.self) { index in
+                goalInputRow(index: index)
+            }
+            
+            if goals.count < 5 {
+                addGoalButton
+            }
+        }
+    }
+    
+    private func goalInputRow(index: Int) -> some View {
+        HStack(spacing: Spacing.md) {
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: CornerRadius.medium)
+                    .stroke(Color.borderGray, lineWidth: 1)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.medium)
+                            .fill(Color.cardBackground)
+                    )
+                    .frame(minHeight: 60)
+                
+                TextEditor(text: $goals[index])
+                    .padding(Spacing.sm)
+                    .background(Color.clear)
+                    .font(.body)
+                    .scrollContentBackground(.hidden)
+                
+            }
+            
+            if goals.count > 1 {
+                Button(action: {
+                    goals.remove(at: index)
+                    onSaveDraft()
+                }) {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(.red)
+                        .font(.system(size: 20))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+    
+    private var addGoalButton: some View {
+        Button(action: {
+            goals.append("")
+            onSaveDraft()
+        }) {
+            HStack(spacing: Spacing.sm) {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundColor(.primaryGreen)
+                Text("添加目标")
+                    .foregroundColor(.primaryGreen)
+            }
+            .font(.subheadline)
+            .fontWeight(.medium)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+    
+    private var startButtonSection: some View {
+        VStack {
+            Button(action: {
+                // 开始任务前清除草稿
+                // TaskDraftManager.shared.clearDraft()
+                onStart()
+            }) {
+                Text("开始专注")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Spacing.lg)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadius.medium)
+                            .fill(canStart ? Color.primaryGreen : Color.secondaryGray)
+                    )
+            }
+            .disabled(!canStart)
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, Spacing.xl)
+            .padding(.bottom, Spacing.xl)
+        }
+        .background(Color.appBackground)
+    }
+    
     private func updateExpectedTimeString() {
         expectedTime = expectedMinutes.formattedAsTime()
+    }
+    
+    private func restoreDraft() {
+        guard let draft = TaskDraftManager.shared.loadDraft() else { return }
+        
+        if let planID = draft.selectedPlanID {
+            selectedPlan = planViewModel.currentPlanItems.first { $0.id == planID }
+        } else {
+            selectedPlan = nil
+        }
+        
+        customProject = draft.customProject
+        taskDescription = draft.taskDescription
+        expectedTime = draft.expectedTime
+        goals = draft.goals.isEmpty ? [""] : draft.goals
+    }
+    
+    private func clearForm() {
+        selectedPlan = nil
+        customProject = ""
+        taskDescription = ""
+        expectedTime = "30分钟"
+        expectedMinutes = 30
+        goals = [""]
+        
+        // TaskDraftManager.shared.clearDraft()
     }
 }
 
