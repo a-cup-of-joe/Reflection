@@ -108,13 +108,13 @@ struct SessionView: View {
                 currentPanel = .activeSession
             }
         }
-        .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
-            if newValue == nil && currentPanel == .activeSession {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    currentPanel = .completion
-                }
-            }
-        }
+        // .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
+        //     if newValue == nil && currentPanel == .activeSession {
+        //         withAnimation(.easeInOut(duration: 0.3)) {
+        //             currentPanel = .completion
+        //         }
+        //     }
+        // }
         .onKeyPress(.escape) {
             if currentPanel == .taskSelection {
                 withAnimation(.easeInOut(duration: 0.3)) {

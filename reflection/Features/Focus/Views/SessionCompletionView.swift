@@ -29,40 +29,27 @@ struct SessionCompletionView: View {
         ZStack {
             Color.appBackground
                 .ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 32) {
-                    // 标题
-                    VStack(spacing: 8) {
-                        Text("Session Complete")
-                            .font(.largeTitle.bold())
-                    }
-                    .padding(.top, 24)
-                    
-                    // 响应式布局
-                    Group {
-                        if horizontalSizeClass == .compact {
-                            // 手机竖屏 - 垂直布局
-                            VStack(spacing: 24) {
-                                projectInfoCard
-                                feedbackSection
-                            }
-                        } else {
-                            // 手机横屏或电脑 - 水平布局
-                            HStack(alignment: .top, spacing: 32) {
-                                projectInfoCard
-                                feedbackSection
-                            }
+
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 32) {
+                        // 标题
+                        VStack(spacing: 8) {
+                            Text("Session Complete")
+                                .font(.largeTitle.bold())
                         }
-                    }
-                    .padding(.horizontal, 24)
-                    
-                    // 结束按钮
-                    saveButton
-                        .padding(.horizontal, 24)
-                    
-                    Spacer(minLength: 32)
+                        .padding(.top, 24)
+
+                        HStack(alignment: .top, spacing: 32) {
+                            projectInfoCard
+                            feedbackSection
+                        }
+
                 }
+
+                // 固定底部按钮
+                saveButton
+                    .padding(.bottom, 24)
             }
         }
         .navigationBarBackButtonHidden(true)
@@ -202,7 +189,7 @@ struct SessionCompletionView: View {
             Text("完成")
                 .font(.title3.bold())
                 .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: 400)
                 .frame(height: 52)
                 .background(primaryGreen)
                 .cornerRadius(16)
