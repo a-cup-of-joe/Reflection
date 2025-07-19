@@ -17,24 +17,25 @@ struct ActiveSessionView: View {
             // 使用温柔的莫兰迪色系背景色
             Color.getGentleBackgroundColor(for: currentSession.themeColor)
                 .ignoresSafeArea(.all)
-            
+
             // 呼吸球背景
             BreathingCircle(themeColor: currentSession.themeColor)
+
             VStack(spacing: Spacing.xxl * 2) {
                 Spacer()
-                
+
                 // 计时器显示
                 Text(sessionViewModel.elapsedTime.formatted())
                     .font(.system(size: 72, weight: .light, design: .monospaced))
                     .foregroundColor(.white)
-                
+
                 // 项目和任务信息
                 VStack(spacing: Spacing.sm) {
                     Text(currentSession.projectName)
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.white.opacity(0.9))
-                                        
+
                     if !currentSession.taskDescription.isEmpty {
                         Text(currentSession.taskDescription)
                             .font(.body)
@@ -42,7 +43,7 @@ struct ActiveSessionView: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
                     }
-    
+
                     // 暂停状态指示
                     if sessionViewModel.isPaused {
                         HStack(spacing: Spacing.xs) {
@@ -55,10 +56,13 @@ struct ActiveSessionView: View {
                         .padding(.top, Spacing.sm)
                     }
                 }
-                
+
                 Spacer()
-                
-                // 控制按钮
+            }
+
+            // 控制按钮区单独固定在底部
+            VStack {
+                Spacer()
                 HStack(spacing: Spacing.lg) {
                     // 暂停/恢复按钮（描线风格）
                     Button(action: {
@@ -75,7 +79,7 @@ struct ActiveSessionView: View {
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
+
                     // 结束按钮（描线风格）
                     Button(action: onEnd) {
                         SessionControlButton(
@@ -85,7 +89,7 @@ struct ActiveSessionView: View {
                         )
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
+
                     // 新增笔记按钮（描线风格，无功能）
                     Button(action: {}) {
                         VStack(spacing: 2) {
@@ -96,8 +100,9 @@ struct ActiveSessionView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
-                .padding(.bottom, Spacing.xxl)
+                .padding(.bottom, 50)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .transition(.asymmetric(
             insertion: .move(edge: .bottom),
