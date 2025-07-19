@@ -68,7 +68,7 @@ struct SessionView: View {
                         currentSession: currentSession,
                         onEnd: {
                             let elapsed = sessionViewModel.elapsedTime
-                            if elapsed < 10 {
+                            if elapsed < 60 {
                                 // 丢弃本次会话，不保存
                                 sessionViewModel.discardCurrentSession()
                                 withAnimation(.easeInOut(duration: 0.3)) {

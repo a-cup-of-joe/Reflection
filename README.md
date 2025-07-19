@@ -4,3 +4,5 @@ A TimePlan & Focus APP for ADHD
 - 时间感知
 - 专注与反思
 - Make you more and more self-discipline
+
+Plan for July: Finished
