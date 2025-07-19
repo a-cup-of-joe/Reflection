@@ -48,7 +48,7 @@ struct NoteView: View {
                         Text(note.title)
                             .font(.title)
                             .fontWeight(.bold)
-                            .padding(.top, 16)
+                            .padding(.top, 40)
                             .padding(.horizontal, 24)
                         TextEditor(text: $noteViewModel.notes[idx].content)
                             .font(.title2)
