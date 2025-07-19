@@ -30,6 +30,9 @@ struct StatisticsView: View {
         }
     }
     
+    @State private var expandedProjectId: UUID? = nil
+    @State private var selectedSessionId: UUID? = nil
+
     private var mainStatisticsView: some View {
         ZStack {
             ScrollView {
@@ -44,14 +47,73 @@ struct StatisticsView: View {
                         Spacer()
                     }
                     .padding(.top, Spacing.xl)
-                    
+
                     // 统计面板
                     VStack(spacing: Spacing.md) {
                         ForEach(statisticsViewModel.statisticsItems) { item in
-                            StatisticsTimeBar(
-                                item: item,
-                                animationProgress: animationProgress
-                            )
+                            VStack(spacing: 0) {
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        expandedProjectId = expandedProjectId == item.id ? nil : item.id
+                                        // 默认选中第一个session
+                                        if expandedProjectId == item.id {
+                                            let sessions = statisticsViewModel.todaySessions.filter { $0.projectName == item.project }
+                                            selectedSessionId = sessions.first?.id
+                                        }
+                                    }
+                                }) {
+                                    StatisticsTimeBar(
+                                        item: item,
+                                        animationProgress: animationProgress
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+
+                                // 展开区：横向Session选择
+                                if expandedProjectId == item.id {
+                                    let sessions = statisticsViewModel.todaySessions.filter { $0.projectName == item.project }
+                                    if !sessions.isEmpty {
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: Spacing.sm) {
+                                                ForEach(sessions, id: \ .id) { session in
+                                                    Button(action: {
+                                                        withAnimation(.easeInOut) {
+                                                            selectedSessionId = session.id
+                                                        }
+                                                    }) {
+                                                        Text(session.taskDescription.isEmpty ? "noName" : session.taskDescription)
+                                                            .font(.body)
+                                                            .foregroundColor(selectedSessionId == session.id ? .white : .primary)
+                                                            .padding(.vertical, 8)
+                                                            .padding(.horizontal, 16)
+                                                            .background(
+                                                                RoundedRectangle(cornerRadius: 12)
+                                                                    .fill(selectedSessionId == session.id ? Color.accentColor : Color.cardBackground)
+                                                            )
+                                                            .overlay(
+                                                                RoundedRectangle(cornerRadius: 12)
+                                                                    .stroke(Color.accentColor.opacity(0.3), lineWidth: selectedSessionId == session.id ? 0 : 1)
+                                                            )
+                                                    }
+                                                    .buttonStyle(PlainButtonStyle())
+                                                }
+                                            }
+                                            .padding(.horizontal, Spacing.lg)
+                                        }
+                                        .padding(.vertical, Spacing.md)
+                                    }
+                                }
+                                
+                                // Session详情展示面板
+                                if let selectedSessionId = selectedSessionId,
+                                   let session = statisticsViewModel.todaySessions.first(where: { $0.id == selectedSessionId }),
+                                   expandedProjectId == item.id {
+                                    SessionDetailCompactView(session: session)
+                                        .padding(.horizontal, Spacing.lg)
+                                        .padding(.bottom, Spacing.md)
+                                        .transition(.opacity.combined(with: .slide))
+                                }
+                            }
                         }
                     }
                     .padding(Spacing.lg)
@@ -59,16 +121,16 @@ struct StatisticsView: View {
                     .cornerRadius(CornerRadius.large)
                     .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                     .padding(.horizontal, Spacing.lg)
-                    
+
                     if statisticsViewModel.statisticsItems.isEmpty {
                         StatisticsEmptyStateView()
                     }
-                    
+
                     Spacer(minLength: Spacing.xl)
                 }
             }
             .containerStyle()
-            
+
             // 历史数据回溯按钮
             VStack {
                 Spacer()
@@ -557,6 +619,121 @@ struct StatisticsEmptyStateView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(.vertical, Spacing.xxl)
+    }
+}
+
+// MARK: - Session Detail Compact View
+struct SessionDetailCompactView: View {
+    let session: FocusSession
+    
+    private let primaryGreen = Color(red: 0.0, green: 0.81, blue: 0.29)
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 任务标题和时间
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(session.taskDescription)
+                        .font(.headline)
+                        .lineLimit(2)
+                    
+                    Text(session.startTime, style: .time)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                // 时间对比
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(formatDuration(session.duration))
+                        .font(.title3.bold())
+                        .foregroundColor(primaryGreen)
+                    
+                    Text(formatDuration(session.expectedTime))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .strikethrough()
+                }
+            }
+            
+            // 目标列表
+            if !session.goals.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("目标")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                    
+                    ForEach(session.goals.filter { !$0.isEmpty }, id: \.self) { goal in
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(primaryGreen)
+                            Text(goal)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+            
+            // 完成情况
+            if !session.actualCompletion.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("实际完成")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                    Text(session.actualCompletion)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .lineLimit(3)
+                }
+            }
+            
+            // 感想
+            if !session.reflection.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("感想")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                    Text(session.reflection)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .lineLimit(3)
+                }
+            }
+            
+            // 后续行动
+            if !session.followUp.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("后续行动")
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                    Text(session.followUp)
+                        .font(.caption)
+                        .foregroundColor(.primary)
+                        .lineLimit(3)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.cardBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
     }
 }
 
