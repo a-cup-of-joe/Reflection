@@ -20,7 +20,6 @@ struct FocusSession: Identifiable, Codable, Equatable {
     // 新增字段：保存 TaskSelectionView 中的额外信息
     var goals: [String]
     var expectedTime: TimeInterval
-    var actualTime: TimeInterval
     
     init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800) {
         self.id = UUID()
@@ -30,7 +29,6 @@ struct FocusSession: Identifiable, Codable, Equatable {
         self.themeColor = themeColor
         self.goals = goals
         self.expectedTime = expectedTime
-        self.actualTime = 0
     }
 }
 
@@ -111,7 +109,6 @@ final class SessionViewModel: ObservableObject {
         guard var session = currentSession else { return }
         
         session.endTime = Date()
-        session.actualTime = session.duration
         sessions.append(session)
         
         updatePlanActualTime(for: session)
