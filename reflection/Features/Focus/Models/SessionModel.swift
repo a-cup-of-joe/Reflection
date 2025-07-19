@@ -118,17 +118,21 @@ final class SessionViewModel: ObservableObject {
     
     func endCurrentSession() {
         guard var session = currentSession else { return }
-        
         session.endTime = Date()
+        // 这里不做时长过滤，过滤逻辑在View里实现
         sessions.append(session)
-        
         updatePlanActualTime(for: session)
-        
         currentSession = nil
-
         isPaused = false
         stopTimer()
         saveSessions()
+    }
+
+    /// 丢弃当前会话（不保存）
+    func discardCurrentSession() {
+        currentSession = nil
+        isPaused = false
+        stopTimer()
     }
     
     // MARK: - Private Helper Methods

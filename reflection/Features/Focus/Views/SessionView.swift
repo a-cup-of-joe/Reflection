@@ -69,9 +69,19 @@ struct SessionView: View {
                     ActiveSessionView(
                         currentSession: currentSession,
                         onEnd: {
-                            sessionViewModel.endCurrentSession()
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                currentPanel = .completion
+                            let elapsed = sessionViewModel.elapsedTime
+                            if elapsed < 10 {
+                                // 丢弃本次会话，不保存
+                                sessionViewModel.discardCurrentSession()
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    currentPanel = .idle
+                                    resetTaskSelectionState()
+                                }
+                            } else {
+                                sessionViewModel.endCurrentSession()
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    currentPanel = .completion
+                                }
                             }
                         }
                     )
