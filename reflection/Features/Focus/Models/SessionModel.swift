@@ -21,7 +21,12 @@ struct FocusSession: Identifiable, Codable, Equatable {
     var goals: [String]
     var expectedTime: TimeInterval
     
-    init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800) {
+    // 新增字段：结束时的反馈信息
+    var actualCompletion: String
+    var reflection: String
+    var followUp: String
+    
+    init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800, actualCompletion: String = "", reflection: String = "", followUp: String = "") {
         self.id = UUID()
         self.projectName = projectName
         self.taskDescription = taskDescription
@@ -29,6 +34,9 @@ struct FocusSession: Identifiable, Codable, Equatable {
         self.themeColor = themeColor
         self.goals = goals
         self.expectedTime = expectedTime
+        self.actualCompletion = actualCompletion
+        self.reflection = reflection
+        self.followUp = followUp
     }
 }
 
@@ -70,7 +78,7 @@ final class SessionViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    func startSession(project: String, task: String, themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800) {
+    func startSession(project: String, task: String, themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800, actualCompletion: String = "", reflection: String = "", followUp: String = "") {
         let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTask = task.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -84,7 +92,10 @@ final class SessionViewModel: ObservableObject {
             startTime: Date(),
             themeColor: themeColor,
             goals: goals,
-            expectedTime: expectedTime
+            expectedTime: expectedTime,
+            actualCompletion: actualCompletion,
+            reflection: reflection,
+            followUp: followUp
         )
         
         currentSession = newSession
@@ -114,6 +125,7 @@ final class SessionViewModel: ObservableObject {
         updatePlanActualTime(for: session)
         
         currentSession = nil
+
         isPaused = false
         stopTimer()
         saveSessions()

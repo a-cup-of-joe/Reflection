@@ -26,6 +26,7 @@ struct SessionView: View {
         case idle           // Panel 1: 空闲状态
         case taskSelection  // Panel 2: 任务选择
         case activeSession  // Panel 3: 任务进行中
+        case completion     // Panel 4: 会话完成
     }
     
     var body: some View {
@@ -70,9 +71,17 @@ struct SessionView: View {
                         onEnd: {
                             sessionViewModel.endCurrentSession()
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                currentPanel = .idle
+                                currentPanel = .completion
                             }
                         }
+                    )
+                }
+                
+            case .completion:
+                if let lastSession = sessionViewModel.sessions.last {
+                    SessionCompletionView(
+                        completedSession: lastSession,
+                        actualDuration: sessionViewModel.elapsedTime
                     )
                 }
             }
@@ -85,7 +94,7 @@ struct SessionView: View {
         .onChange(of: sessionViewModel.currentSession) { oldValue, newValue in
             if newValue == nil && currentPanel == .activeSession {
                 withAnimation(.easeInOut(duration: 0.3)) {
-                    currentPanel = .idle
+                    currentPanel = .completion
                 }
             }
         }

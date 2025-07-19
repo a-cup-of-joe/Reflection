@@ -18,6 +18,7 @@ extension Color {
     // 基础色：白色 - 用于主背景和文字对比
     static let cardBackground = Color.white
     static let appBackground = Color.white
+    static var textFieldBackground = Color.white
     
     // 保留一些必要的灰色用于边框等
     static let borderGray = Color(hex: "#E5E7EB")
