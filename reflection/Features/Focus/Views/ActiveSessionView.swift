@@ -34,7 +34,7 @@ struct ActiveSessionView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.white.opacity(0.9))
-                    
+                                        
                     if !currentSession.taskDescription.isEmpty {
                         Text(currentSession.taskDescription)
                             .font(.body)
@@ -42,7 +42,7 @@ struct ActiveSessionView: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(3)
                     }
-                    
+    
                     // 暂停状态指示
                     if sessionViewModel.isPaused {
                         HStack(spacing: Spacing.xs) {

@@ -17,12 +17,20 @@ struct FocusSession: Identifiable, Codable, Equatable {
     var endTime: Date?
     var themeColor: String
     
-    init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A") {
+    // 新增字段：保存 TaskSelectionView 中的额外信息
+    var goals: [String]
+    var expectedTime: TimeInterval
+    var actualTime: TimeInterval
+    
+    init(projectName: String, taskDescription: String, startTime: Date = Date(), themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800) {
         self.id = UUID()
         self.projectName = projectName
         self.taskDescription = taskDescription
         self.startTime = startTime
         self.themeColor = themeColor
+        self.goals = goals
+        self.expectedTime = expectedTime
+        self.actualTime = 0
     }
 }
 
@@ -64,7 +72,7 @@ final class SessionViewModel: ObservableObject {
     }
     
     // MARK: - Public Methods
-    func startSession(project: String, task: String, themeColor: String = "#00CE4A") {
+    func startSession(project: String, task: String, themeColor: String = "#00CE4A", goals: [String] = [], expectedTime: TimeInterval = 1800) {
         let trimmedProject = project.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTask = task.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -75,7 +83,10 @@ final class SessionViewModel: ObservableObject {
         let newSession = FocusSession(
             projectName: trimmedProject,
             taskDescription: trimmedTask,
-            themeColor: themeColor
+            startTime: Date(),
+            themeColor: themeColor,
+            goals: goals,
+            expectedTime: expectedTime
         )
         
         currentSession = newSession
@@ -100,6 +111,7 @@ final class SessionViewModel: ObservableObject {
         guard var session = currentSession else { return }
         
         session.endTime = Date()
+        session.actualTime = session.duration
         sessions.append(session)
         
         updatePlanActualTime(for: session)

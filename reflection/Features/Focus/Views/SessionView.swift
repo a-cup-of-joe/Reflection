@@ -117,15 +117,58 @@ struct SessionView: View {
         let project = selectedPlan?.project ?? customProject
         let themeColor = selectedPlan?.themeColor ?? "#00CE4A"
         
+        // 解析预期时间（处理 "30m" 或 "1h30m" 格式）
+        let expectedTimeInterval = parseExpectedTime(expectedTime)
+        
+        // 过滤空的目标
+        let validGoals = goals.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        
         sessionViewModel.startSession(
             project: project,
             task: taskDescription,
-            themeColor: themeColor
+            themeColor: themeColor,
+            goals: validGoals,
+            expectedTime: expectedTimeInterval
         )
         
         withAnimation(.easeInOut(duration: 0.3)) {
             currentPanel = .activeSession
         }
+    }
+    
+    /// 解析预期时间字符串（支持 "30m", "1h30m" 格式）
+    private func parseExpectedTime(_ timeString: String) -> TimeInterval {
+        var totalMinutes = 0
+        
+        // 处理 "30m" 格式
+        if timeString.hasSuffix("m") {
+            let minutesString = timeString.replacingOccurrences(of: "m", with: "")
+            if let minutes = Int(minutesString) {
+                totalMinutes = minutes
+            }
+        }
+        
+        // 处理 "1h30m" 格式
+        else if timeString.contains("h") {
+            let components = timeString.components(separatedBy: CharacterSet(charactersIn: "hm"))
+            if components.count >= 1 {
+                if let hours = Int(components[0]) {
+                    totalMinutes += hours * 60
+                }
+            }
+            if components.count >= 2 {
+                if let minutes = Int(components[1]) {
+                    totalMinutes += minutes
+                }
+            }
+        }
+        
+        // 默认30分钟
+        if totalMinutes == 0 {
+            totalMinutes = 30
+        }
+        
+        return TimeInterval(totalMinutes * 60)
     }
 
 
