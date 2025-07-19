@@ -40,7 +40,7 @@ struct StatisticsView: View {
                     // 标题
                     HStack {
                         Spacer()
-                        Text("今日统计")
+                        Text("Statistics")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
@@ -49,78 +49,13 @@ struct StatisticsView: View {
                     .padding(.top, Spacing.xl)
 
                     // 统计面板
-                    VStack(spacing: Spacing.md) {
-                        ForEach(statisticsViewModel.statisticsItems) { item in
-                            VStack(spacing: 0) {
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        expandedProjectId = expandedProjectId == item.id ? nil : item.id
-                                        // 默认选中第一个session
-                                        if expandedProjectId == item.id {
-                                            let sessions = statisticsViewModel.todaySessions.filter { $0.projectName == item.project }
-                                            selectedSessionId = sessions.first?.id
-                                        }
-                                    }
-                                }) {
-                                    StatisticsTimeBar(
-                                        item: item,
-                                        animationProgress: animationProgress
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
-
-                                // 展开区：横向Session选择
-                                if expandedProjectId == item.id {
-                                    let sessions = statisticsViewModel.todaySessions.filter { $0.projectName == item.project }
-                                    if !sessions.isEmpty {
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: Spacing.sm) {
-                                                ForEach(sessions, id: \ .id) { session in
-                                                    Button(action: {
-                                                        withAnimation(.easeInOut) {
-                                                            selectedSessionId = session.id
-                                                        }
-                                                    }) {
-                                                        Text(session.taskDescription.isEmpty ? "noName" : session.taskDescription)
-                                                            .font(.body)
-                                                            .foregroundColor(selectedSessionId == session.id ? .white : .primary)
-                                                            .padding(.vertical, 8)
-                                                            .padding(.horizontal, 16)
-                                                            .background(
-                                                                RoundedRectangle(cornerRadius: 12)
-                                                                    .fill(selectedSessionId == session.id ? Color.accentColor : Color.cardBackground)
-                                                            )
-                                                            .overlay(
-                                                                RoundedRectangle(cornerRadius: 12)
-                                                                    .stroke(Color.accentColor.opacity(0.3), lineWidth: selectedSessionId == session.id ? 0 : 1)
-                                                            )
-                                                    }
-                                                    .buttonStyle(PlainButtonStyle())
-                                                }
-                                            }
-                                            .padding(.horizontal, Spacing.lg)
-                                        }
-                                        .padding(.vertical, Spacing.md)
-                                    }
-                                }
-                                
-                                // Session详情展示面板
-                                if let selectedSessionId = selectedSessionId,
-                                   let session = statisticsViewModel.todaySessions.first(where: { $0.id == selectedSessionId }),
-                                   expandedProjectId == item.id {
-                                    SessionDetailCompactView(session: session)
-                                        .padding(.horizontal, Spacing.lg)
-                                        .padding(.bottom, Spacing.md)
-                                        .transition(.opacity.combined(with: .slide))
-                                }
-                            }
-                        }
-                    }
-                    .padding(Spacing.lg)
-                    .background(Color.cardBackground)
-                    .cornerRadius(CornerRadius.large)
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                    .padding(.horizontal, Spacing.lg)
+                    StatisticsPanelView(
+                        statisticsItems: statisticsViewModel.statisticsItems,
+                        sessions: statisticsViewModel.todaySessions,
+                        animationProgress: animationProgress,
+                        expandedProjectId: $expandedProjectId,
+                        selectedSessionId: $selectedSessionId
+                    )
 
                     if statisticsViewModel.statisticsItems.isEmpty {
                         StatisticsEmptyStateView()
@@ -162,6 +97,8 @@ struct HistoryStatisticsView: View {
     @Binding var isPresented: Bool
     @State private var animationProgress: Double = 0.0
     @State private var selectedDateIndex: Int = 0
+    @State private var expandedProjectId: UUID? = nil
+    @State private var selectedSessionId: UUID? = nil
     
     var body: some View {
         ZStack {
@@ -199,10 +136,6 @@ struct HistoryStatisticsView: View {
                     // 日期选择器
                     if !statisticsViewModel.availableDates.isEmpty {
                         VStack(spacing: Spacing.md) {
-                            Text("选择日期")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: Spacing.sm) {
                                     ForEach(Array(statisticsViewModel.availableDates.enumerated()), id: \.offset) { index, date in
@@ -227,19 +160,13 @@ struct HistoryStatisticsView: View {
                     }
                     
                     // 统计面板
-                    VStack(spacing: Spacing.md) {
-                        ForEach(statisticsViewModel.statisticsItems) { item in
-                            StatisticsTimeBar(
-                                item: item,
-                                animationProgress: animationProgress
-                            )
-                        }
-                    }
-                    .padding(Spacing.lg)
-                    .background(Color.cardBackground)
-                    .cornerRadius(CornerRadius.large)
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                    .padding(.horizontal, Spacing.lg)
+                    StatisticsPanelView(
+                        statisticsItems: statisticsViewModel.statisticsItems,
+                        sessions: statisticsViewModel.todaySessions,
+                        animationProgress: animationProgress,
+                        expandedProjectId: $expandedProjectId,
+                        selectedSessionId: $selectedSessionId
+                    )
                     
                     if statisticsViewModel.statisticsItems.isEmpty {
                         HistoryEmptyStateView()
@@ -737,6 +664,85 @@ struct SessionDetailCompactView: View {
     }
 }
 
+
+// MARK: - Statistics Panel View (可复用)
+struct StatisticsPanelView: View {
+    let statisticsItems: [StatisticsItem]
+    let sessions: [FocusSession]
+    let animationProgress: Double
+    
+    @Binding var expandedProjectId: UUID?
+    @Binding var selectedSessionId: UUID?
+    
+    var body: some View {
+        VStack(spacing: Spacing.md) {
+            ForEach(statisticsItems) { item in
+                VStack(spacing: 0) {
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            expandedProjectId = expandedProjectId == item.id ? nil : item.id
+                            // 默认选中第一个session
+                            if expandedProjectId == item.id {
+                                let filtered = sessions.filter { $0.projectName == item.project }
+                                selectedSessionId = filtered.first?.id
+                            }
+                        }
+                    }) {
+                        StatisticsTimeBar(
+                            item: item,
+                            animationProgress: animationProgress
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    // 展开区：横向Session选择
+                    if expandedProjectId == item.id {
+                        let filtered = sessions.filter { $0.projectName == item.project }
+                        if !filtered.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: Spacing.sm) {
+                                    ForEach(filtered, id: \ .id) { session in
+                                        Button(action: {
+                                            withAnimation(.easeInOut) {
+                                                selectedSessionId = session.id
+                                            }
+                                        }) {
+                                            Text(session.taskDescription.isEmpty ? "noName" : session.taskDescription)
+                                                .font(.body)
+                                                .foregroundColor(selectedSessionId == session.id ? .white : .primary)
+                                                .padding(.vertical, 8)
+                                                .padding(.horizontal, 16)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .fill(selectedSessionId == session.id ? Color.accentColor : Color.cardBackground)
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color.accentColor.opacity(0.3), lineWidth: selectedSessionId == session.id ? 0 : 1)
+                                                )
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                }
+                                .padding(.horizontal, Spacing.lg)
+                            }
+                            .padding(.vertical, Spacing.md)
+                        }
+                    }
+                    // Session详情展示面板
+                    if let selectedSessionId = selectedSessionId,
+                       let session = sessions.first(where: { $0.id == selectedSessionId }),
+                       expandedProjectId == item.id {
+                        SessionDetailCompactView(session: session)
+                            .padding(.horizontal, Spacing.lg)
+                            .padding(.bottom, Spacing.md)
+                            .transition(.opacity.combined(with: .slide))
+                    }
+                }
+            }
+        }
+    }
+}
 
 #Preview {
     StatisticsView()
