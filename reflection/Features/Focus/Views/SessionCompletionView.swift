@@ -13,11 +13,17 @@ struct SessionCompletionView: View {
     
     let completedSession: FocusSession
     let actualDuration: TimeInterval
+    let onEnd: () -> Void
     
     @State private var actualCompletion: String = ""
     @State private var reflection: String = ""
     @State private var followUp: String = ""
-    @State private var isSaving = false
+    
+    // 响应式布局
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    // 固定绿色主题色
+    private let primaryGreen = Color(red: 0.0, green: 0.81, blue: 0.29)
     
     var body: some View {
         ZStack {
@@ -25,184 +31,197 @@ struct SessionCompletionView: View {
                 .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 32) {
                     // 标题
                     VStack(spacing: 8) {
-                        Text("会话完成")
+                        Text("Session Complete")
                             .font(.largeTitle.bold())
-                        Text("回顾你的专注时光")
-                            .font(.title3)
-                            .foregroundColor(.secondary)
                     }
-                    .padding(.top, 32)
+                    .padding(.top, 24)
                     
-                    // 会话信息卡片
-                    sessionInfoCard
+                    // 响应式布局
+                    Group {
+                        if horizontalSizeClass == .compact {
+                            // 手机竖屏 - 垂直布局
+                            VStack(spacing: 24) {
+                                projectInfoCard
+                                feedbackSection
+                            }
+                        } else {
+                            // 手机横屏或电脑 - 水平布局
+                            HStack(alignment: .top, spacing: 32) {
+                                projectInfoCard
+                                feedbackSection
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 24)
                     
-                    // 反馈表单
-                    feedbackForm
-                    
-                    // 保存按钮
+                    // 结束按钮
                     saveButton
+                        .padding(.horizontal, 24)
                     
-                    Spacer(minLength: 50)
+                    Spacer(minLength: 32)
                 }
-                .padding(.horizontal, 20)
             }
         }
         .navigationBarBackButtonHidden(true)
     }
     
-    private var sessionInfoCard: some View {
-        VStack(spacing: 16) {
-            // 项目信息
-            VStack(spacing: 4) {
+    private var projectInfoCard: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            // 项目名
+            VStack(alignment: .leading, spacing: 6) {
+                Text("项目")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
                 Text(completedSession.projectName)
-                    .font(.title2.bold())
+                    .font(.title.bold())
+                    .lineLimit(2)
+            }
+            
+            // 任务描述
+            VStack(alignment: .leading, spacing: 6) {
+                Text("任务")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
                 Text(completedSession.taskDescription)
                     .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                    .foregroundColor(.primary)
+                    .lineLimit(4)
             }
             
-            Divider()
-            
-            // 时间信息
-            HStack(spacing: 40) {
-                VStack(spacing: 4) {
+            // 时间对比 - 水平排列
+            HStack(spacing: 32) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("预计时间")
-                        .font(.caption)
+                        .font(.title3)
                         .foregroundColor(.secondary)
                     Text(formatDuration(completedSession.expectedTime))
-                        .font(.headline)
+                        .font(.title2.bold())
+                        .foregroundColor(.secondary)
                 }
                 
-                VStack(spacing: 4) {
-                    Text("实际时间")
-                        .font(.caption)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("实际用时")
+                        .font(.title3)
                         .foregroundColor(.secondary)
                     Text(formatDuration(actualDuration))
-                        .font(.headline)
-                        .foregroundColor(completedSession.themeColorSwiftUI)
+                        .font(.title2.bold())
+                        .foregroundColor(primaryGreen)
                 }
-            }
-            
-            // 时间差异
-            let timeDiff = actualDuration - completedSession.expectedTime
-            if abs(timeDiff) > 60 { // 差异超过1分钟才显示
-                Text(timeDiff > 0 ? "超出 \(formatDuration(timeDiff))" : "节省 \(formatDuration(-timeDiff))")
-                    .font(.caption)
-                    .foregroundColor(timeDiff > 0 ? .orange : .green)
             }
             
             // 目标列表
             if !completedSession.goals.isEmpty {
-                Divider()
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("预期目标")
-                        .font(.headline)
+                    Text("Targets")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                    
                     ForEach(completedSession.goals.filter { !$0.isEmpty }, id: \.self) { goal in
-                        HStack {
-                            Image(systemName: "target")
-                                .foregroundColor(completedSession.themeColorSwiftUI)
+                        HStack(spacing: 8) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 6))
+                                .foregroundColor(primaryGreen)
                             Text(goal)
                                 .font(.body)
+                                .lineLimit(2)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(20)
+        .padding(24)
         .background(Color.cardBackground)
-        .cornerRadius(16)
-        .shadow(radius: 2)
+        .cornerRadius(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    private var feedbackForm: some View {
-        VStack(spacing: 20) {
+    private var feedbackSection: some View {
+        VStack(alignment: .leading, spacing: 24) {
             // 实际完成情况
             VStack(alignment: .leading, spacing: 8) {
-                Text("实际完成情况")
-                    .font(.headline)
+                Text("Actual Completion")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
                 TextEditor(text: $actualCompletion)
-                    .frame(minHeight: 80)
-                    .padding(8)
+                    .font(.body)
+                    .padding(12)
                     .background(Color.textFieldBackground)
-                    .cornerRadius(8)
+                    .cornerRadius(12)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
+                    .frame(minHeight: 80, maxHeight: 120)
             }
             
             // 感想
             VStack(alignment: .leading, spacing: 8) {
-                Text("感想与反思")
-                    .font(.headline)
+                Text("Thoughts")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
                 TextEditor(text: $reflection)
-                    .frame(minHeight: 80)
-                    .padding(8)
+                    .font(.body)
+                    .padding(12)
                     .background(Color.textFieldBackground)
-                    .cornerRadius(8)
+                    .cornerRadius(12)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
+                    .frame(minHeight: 80, maxHeight: 120)
             }
             
-            // Follow-up
+            // 后续行动
             VStack(alignment: .leading, spacing: 8) {
-                Text("后续行动")
-                    .font(.headline)
+                Text("Follow-ups")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
                 TextEditor(text: $followUp)
-                    .frame(minHeight: 80)
-                    .padding(8)
+                    .font(.body)
+                    .padding(12)
                     .background(Color.textFieldBackground)
-                    .cornerRadius(8)
+                    .cornerRadius(12)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
+                    .frame(minHeight: 80, maxHeight: 120)
             }
         }
+        .padding(24)
+        .background(Color.cardBackground)
+        .cornerRadius(20)
+        .frame(maxWidth: .infinity)
     }
     
     private var saveButton: some View {
         Button(action: saveSession) {
-            if isSaving {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-            } else {
-                Text("保存并返回")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(actualCompletion.isEmpty && reflection.isEmpty && followUp.isEmpty ? Color.gray : completedSession.themeColorSwiftUI)
-                    .cornerRadius(12)
-            }
+            Text("完成")
+                .font(.title3.bold())
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(primaryGreen)
+                .cornerRadius(16)
         }
-        .disabled(isSaving || (actualCompletion.isEmpty && reflection.isEmpty && followUp.isEmpty))
+        .buttonStyle(PlainButtonStyle())
     }
     
     private func saveSession() {
-        isSaving = true
-        
         // 更新会话信息
         var updatedSession = completedSession
         updatedSession.actualCompletion = actualCompletion
         updatedSession.reflection = reflection
         updatedSession.followUp = followUp
-        
+
         // 更新会话
         sessionViewModel.updateSession(updatedSession)
-        
-        // 延迟一下给用户反馈
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            dismiss()
-        }
+
+        // 通知父视图
+        onEnd()
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {

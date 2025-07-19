@@ -81,7 +81,14 @@ struct SessionView: View {
                 if let lastSession = sessionViewModel.sessions.last {
                     SessionCompletionView(
                         completedSession: lastSession,
-                        actualDuration: sessionViewModel.elapsedTime
+                        actualDuration: sessionViewModel.elapsedTime,
+                        onEnd: {
+                            sessionViewModel.endCurrentSession()
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                currentPanel = .idle
+                                resetTaskSelectionState()
+                            }
+                        }
                     )
                 }
             }

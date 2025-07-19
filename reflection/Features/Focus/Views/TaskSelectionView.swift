@@ -78,8 +78,6 @@ struct TaskSelectionView: View {
             TimeBlocksList(
                 plans: planViewModel.currentPlanItems.sorted(by: sortPlans),
                 selectedPlan: $selectedPlan,
-                hasDraft: hasDraft,
-                onRestoreDraft: restoreDraft
             )
             .frame(width: 280)
             
@@ -183,8 +181,6 @@ struct TaskSelectionView: View {
 struct TimeBlocksList: View {
     let plans: [PlanItem]
     @Binding var selectedPlan: PlanItem?
-    let hasDraft: Bool
-    let onRestoreDraft: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -196,15 +192,6 @@ struct TimeBlocksList: View {
                 
                 Spacer()
                 
-                if hasDraft {
-                    Button(action: onRestoreDraft) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 14))
-                            .foregroundColor(.primaryGreen)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .help("恢复上次草稿")
-                }
             }
             .padding(.horizontal, Spacing.lg)
             .padding(.top, Spacing.xl)
