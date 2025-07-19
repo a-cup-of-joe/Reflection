@@ -62,7 +62,6 @@ struct TaskSelectionView: View {
     @EnvironmentObject var planViewModel: PlanViewModel
     
     @Binding var selectedPlan: PlanItem?
-    @Binding var customProject: String
     @Binding var taskDescription: String
     @Binding var expectedTime: String
     @Binding var goals: [String]
@@ -77,13 +76,12 @@ struct TaskSelectionView: View {
         HStack(spacing: 0) {
             TimeBlocksList(
                 plans: planViewModel.currentPlanItems.sorted(by: sortPlans),
-                selectedPlan: $selectedPlan,
+                selectedPlan: $selectedPlan
             )
             .frame(width: 280)
             
             TaskCustomizationArea(
                 selectedPlan: $selectedPlan,
-                customProject: $customProject,
                 taskDescription: $taskDescription,
                 expectedTime: $expectedTime,
                 goals: $goals,
@@ -143,7 +141,6 @@ struct TaskSelectionView: View {
             selectedPlan = nil
         }
         
-        customProject = draft.customProject
         taskDescription = draft.taskDescription
         expectedTime = draft.expectedTime
         goals = draft.goals.isEmpty ? [""] : draft.goals
@@ -153,7 +150,6 @@ struct TaskSelectionView: View {
         let selectedPlanID = selectedPlan?.id
         TaskDraftManager.shared.saveDraft(
             selectedPlanID: selectedPlanID,
-            customProject: customProject,
             taskDescription: taskDescription,
             expectedTime: expectedTime,
             goals: goals.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -166,7 +162,6 @@ struct TaskSelectionView: View {
         
         // 重置表单
         selectedPlan = nil
-        customProject = ""
         taskDescription = ""
         expectedTime = "30分钟"
         goals = [""]
@@ -307,7 +302,6 @@ struct TaskCustomizationArea: View {
     @EnvironmentObject var planViewModel: PlanViewModel
     
     @Binding var selectedPlan: PlanItem?
-    @Binding var customProject: String
     @Binding var taskDescription: String
     @Binding var expectedTime: String
     @Binding var goals: [String]
@@ -319,7 +313,7 @@ struct TaskCustomizationArea: View {
     @State private var expectedMinutes: Int = 30
     
     var canStart: Bool {
-        let hasProject = selectedPlan != nil || !customProject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasProject = selectedPlan != nil || !taskDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         return hasProject
     }
     
@@ -396,9 +390,6 @@ struct TaskCustomizationArea: View {
             updateExpectedTimeString()
             onSaveDraft()
         }
-        .onChange(of: customProject) { _, _ in
-            onSaveDraft()
-        }
         .onChange(of: taskDescription) { _, _ in
             onSaveDraft()
         }
@@ -411,51 +402,43 @@ struct TaskCustomizationArea: View {
     }
     
     private var projectInfoSection: some View {
-        Group {
-            if selectedPlan == nil {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    Text("项目名称")
-                        .font(.headline)
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("选中项目")
+                .font(.headline)
+                .foregroundColor(.primary)
+            
+            if let selectedPlan = selectedPlan {
+                HStack(spacing: Spacing.md) {
+                    // 使用与 TimeBlockCard 一致的圆球设计
+                    projectIconView
+                    
+                    Text(selectedPlan.project)
+                        .font(.body)
+                        .fontWeight(.medium)
                         .foregroundColor(.primary)
                     
-                    TextField("", text: $customProject)
-                        .textFieldStyle(PlainTextFieldStyle())
-                        .font(.body)
-                        .padding(.horizontal, Spacing.md)
-                        .padding(.vertical, Spacing.sm)
-                        .background(Color.cardBackground)
-                        .cornerRadius(CornerRadius.medium)
+                    Spacer()
+                }
+                .padding(Spacing.lg)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadius.medium)
+                        .fill(selectedPlan.themeColorSwiftUI.opacity(0.08))
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                .stroke(Color.borderGray, lineWidth: 1)
+                                .stroke(selectedPlan.themeColorSwiftUI.opacity(0.3), lineWidth: 1)
                         )
-                }
+                )
             } else {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    Text("选中项目")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                // 未选择项目时的提示
+                HStack {
+                    Image(systemName: "exclamationmark.circle")
+                        .foregroundColor(.secondary)
                     
-                    HStack(spacing: Spacing.md) {
-                        // 使用与 TimeBlockCard 一致的圆球设计
-                        projectIconView
-                        
-                        Text(selectedPlan?.project ?? "")
-                            .font(.body)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                    }
-                    .padding(Spacing.lg)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadius.medium)
-                            .fill(selectedPlan?.themeColorSwiftUI.opacity(0.08) ?? Color.lightGreen)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: CornerRadius.medium)
-                                    .stroke(selectedPlan?.themeColorSwiftUI.opacity(0.3) ?? Color.borderGray, lineWidth: 1)
-                            )
-                    )
+                    Text("请从左侧选择一个时间块")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
                 }
             }
         }
@@ -625,7 +608,6 @@ struct TaskCustomizationArea: View {
             selectedPlan = nil
         }
         
-        customProject = draft.customProject
         taskDescription = draft.taskDescription
         expectedTime = draft.expectedTime
         goals = draft.goals.isEmpty ? [""] : draft.goals
@@ -633,7 +615,6 @@ struct TaskCustomizationArea: View {
     
     private func clearForm() {
         selectedPlan = nil
-        customProject = ""
         taskDescription = ""
         expectedTime = "30分钟"
         expectedMinutes = 30
@@ -646,7 +627,6 @@ struct TaskCustomizationArea: View {
 #Preview {
     TaskSelectionView(
         selectedPlan: .constant(nil),
-        customProject: .constant(""),
         taskDescription: .constant(""),
         expectedTime: .constant(""),
         goals: .constant([""]),

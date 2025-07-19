@@ -9,15 +9,13 @@ import Foundation
 
 struct TaskDraft: Codable {
     let selectedPlanID: UUID?
-    let customProject: String
     let taskDescription: String
     let expectedTime: String
     let goals: [String]
     let timestamp: Date
-    
-    init(selectedPlanID: UUID?, customProject: String, taskDescription: String, expectedTime: String, goals: [String]) {
+
+    init(selectedPlanID: UUID?, taskDescription: String, expectedTime: String, goals: [String]) {
         self.selectedPlanID = selectedPlanID
-        self.customProject = customProject
         self.taskDescription = taskDescription
         self.expectedTime = expectedTime
         self.goals = goals
@@ -31,10 +29,9 @@ class TaskDraftManager {
     
     private init() {}
     
-    func saveDraft(selectedPlanID: UUID?, customProject: String, taskDescription: String, expectedTime: String, goals: [String]) {
+    func saveDraft(selectedPlanID: UUID?, taskDescription: String, expectedTime: String, goals: [String]) {
         let draft = TaskDraft(
             selectedPlanID: selectedPlanID,
-            customProject: customProject,
             taskDescription: taskDescription,
             expectedTime: expectedTime,
             goals: goals

@@ -17,7 +17,6 @@ struct SessionView: View {
     
     // Panel 2 的状态管理
     @State private var selectedPlan: PlanItem?
-    @State private var customProject = ""
     @State private var taskDescription = ""
     @State private var expectedTime = ""
     @State private var goals: [String] = [""]
@@ -49,7 +48,6 @@ struct SessionView: View {
             case .taskSelection:
                 TaskSelectionView(
                     selectedPlan: $selectedPlan,
-                    customProject: $customProject,
                     taskDescription: $taskDescription,
                     expectedTime: $expectedTime,
                     goals: $goals,
@@ -132,7 +130,6 @@ struct SessionView: View {
     /// 重置任务选择状态
     private func resetTaskSelectionState() {
         selectedPlan = nil
-        customProject = ""
         taskDescription = ""
         expectedTime = ""
         goals = [""]
@@ -140,8 +137,8 @@ struct SessionView: View {
     
     /// 从任务选择界面开始会话
     private func startSessionFromTaskSelection() {
-        let project = selectedPlan?.project ?? customProject
-        let themeColor = selectedPlan?.themeColor ?? "#00CE4A"
+        let project = selectedPlan?.project ?? "ERROR"
+        let themeColor = selectedPlan?.themeColor ?? "#000000"
         
         // 解析预期时间（处理 "30m" 或 "1h30m" 格式）
         let expectedTimeInterval = parseExpectedTime(expectedTime)
