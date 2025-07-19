@@ -44,15 +44,13 @@ struct SessionCompletionView: View {
                             projectInfoCard
                             feedbackSection
                         }
-
-                }
-
-                // 固定底部按钮
-                saveButton
-                    .padding(.bottom, 24)
+                    }
+                    saveButton
+                        .padding(.bottom, 24)
             }
         }
         .navigationBarBackButtonHidden(true)
+    }
     }
     
     private var projectInfoCard: some View {
