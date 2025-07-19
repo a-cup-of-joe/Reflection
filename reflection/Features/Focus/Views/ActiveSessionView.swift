@@ -93,7 +93,7 @@ struct ActiveSessionView: View {
                     // 新增笔记按钮（描线风格，无功能）
                     Button(action: {}) {
                         VStack(spacing: 2) {
-                            Image(systemName: "note.text")
+                            Image(systemName: "doc.plaintext")
                                 .font(.system(size: 20, weight: .regular))
                                 .foregroundColor(Color.white.opacity(0.45))
                         }
